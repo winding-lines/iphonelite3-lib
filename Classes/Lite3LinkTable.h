@@ -71,5 +71,6 @@
  */
 -(void)truncate;
 
+-(NSMutableArray*)selectLinksFor:(NSString*)propertyName andId:(int) _id;
 
 @end

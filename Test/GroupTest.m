@@ -104,8 +104,7 @@ static const char * ddl =
 - (void)testGroupsTableSetup {
     STAssertNotNil( groupsTable, @"Valid groupsTable", nil );
     STAssertTrue( [groupsTable tableExists], @"Table regions does not exist", nil );
-    STAssertNotNil( groupsTable.linkedTables, nil, @"No linked tables", nil );
-    STAssertEquals( (int)[groupsTable.linkedTables count],1,@"Bad number of linkedTables %d", [groupsTable.linkedTables count]);
+    STAssertNotNil( [groupsTable linkTableFor: @"users"], nil, @"No linked table for users", nil );
 }
 
 -(void)testUsersTableSetup {
@@ -115,7 +114,7 @@ static const char * ddl =
 }
 
 - (void)testGroupsLinkedTableSetup {
-    Lite3LinkTable * groupsUsers = [groupsTable.linkedTables objectAtIndex: 0];
+    Lite3LinkTable * groupsUsers = [groupsTable linkTableFor: @"users"];
     STAssertNotNil( groupsUsers, @"Empty linkedTables", nil );
     STAssertNotNil( groupsUsers.ownTable, @"LinkedTable does not have its own table", nil );
     STAssertTrue( [groupsUsers.ownTable tableExists], @"LinkedTable not in the database %@", groupsUsers.ownTable.tableName );
@@ -139,7 +138,7 @@ static const char * ddl =
 
 - (void) testImportManyToMany {    
     NSArray * groups = [self buildImportGroups];
-    Lite3LinkTable * groupsUsers = [groupsTable.linkedTables objectAtIndex: 0];
+    Lite3LinkTable * groupsUsers = [groupsTable linkTableFor: @"users"];
     
     [groupsTable truncate];
     STAssertEquals( 0, [groupsTable count], @"Groups table not empty after truncate, instead %d", [groupsTable count] );
@@ -148,14 +147,15 @@ static const char * ddl =
     // IMPORT
     [groupsTable updateAll: groups];
     
-    // TEST SOME MORE
-    
+    // TEST SOME MORE    
     STAssertEquals ( (int)[groups count], (int)[groupsTable count], @"Groups table does not have proper count of rows %d", [groupsTable count] );
     
     int linksCount = [groupsUsers.ownTable count];
     STAssertGreaterThan( linksCount, 0, @"Linked table is empty", nil);
     STAssertEquals( linksCount, 6, @"Bad number of links %d", linksCount );
-
+    NSArray * linksForGroup1 = [groupsUsers.ownTable select: @"group_id = 1"];
+    STAssertNotNil( linksForGroup1, @"No links for group id 1", nil );
+    STAssertEquals ( (int)[linksForGroup1 count], 3, @"%d bad count for links of group 1", (int)[linksForGroup1 count] );
 
     // truncate one more time
     [groupsTable truncate];
@@ -170,17 +170,26 @@ static const char * ddl =
     [usersTable updateAll: users];
     User * user = (User*)[usersTable selectFirst: @"id = 1"];
     STAssertNotNil( user, @"Cannot fetch user", nil );
+    STAssertEquals( user._id, 1, @"Fetched wrong user %@", user );
     user = (User*)[usersTable selectFirst: @"id = 100"];
     STAssertNil( user, @"User should have been nil not %@", user);
 }
 
 - (void) testAccessManyToMany {    
+    [usersTable updateAll: [self buildImportUsers]];
+    NSArray * users = [usersTable select: nil];
+    STAssertNotNil( users, @"No users", nil );
+    STAssertEquals ( (int)[users count], 3, @"%d is wrong user count", (int)[users count]);
     NSArray * groups = [self buildImportGroups];
     [groupsTable updateAll: groups];
-    Group * group = (Group*)[groupsTable selectFirst: @"id = 1"];
-    STAssertNotNil( group, @"Cannot fetch group", nil );
-    group = (Group*)[groupsTable selectFirst: @"id = 100"];
+    Group * group = (Group*)[groupsTable selectFirst: @"id = 100"];
     STAssertNil( group, @"Group should have been nil not %@", group);
+    group = (Group*)[groupsTable selectFirst: @"id = 1"];
+    STAssertNotNil( group, @"Cannot fetch group", nil );
+    STAssertEquals( group._id, 1 , @"Fetched wrong group %@", group );
+    NSArray * usersForGroup = [groupsTable selectLinks: group forProperty: @"users" fromPool: users];
+    STAssertNotNil( usersForGroup, @"Group has null users", nil );
+    STAssertEquals ( (int)[usersForGroup count], 3, @"%d is the wrong number of users", (int)[usersForGroup count] );
     
 }
 

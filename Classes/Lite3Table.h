@@ -25,26 +25,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #import <Foundation/Foundation.h>
 #import <sqlite3.h>
-#import <objc/runtime.h>
 @class Lite3DB;
+@class Lite3LinkTable;
 
-#define _LITE3_INT 1
-#define _LITE3_DOUBLE 2
-#define _LITE3_STRING 3
-#define _LITE3_TIMESTAMP 4
-
-@interface Lite3Arg: NSObject {
-    NSString * name;
-    int preparedType;
-    Ivar ivar;
-}
-@property(nonatomic,retain) NSString * name;
-@property(nonatomic) int preparedType;
-@property(nonatomic) Ivar ivar;
-
-+ (Lite3Arg*)lite3ArgWithName: (NSString*) _name class: cls andType:(int) _preparedType;
-
-@end
 
 
 
@@ -65,14 +48,11 @@ OTHER DEALINGS IN THE SOFTWARE.
     NSString * classNameLowerCase;
     // custom representation of the SQL arguments for faster processing
     NSArray * arguments;
-    // list of linked tables for many-to-many relationships
-    NSArray * linkedTables;
 }
 
 @property(nonatomic,retain) NSString * tableName;
 @property(nonatomic,retain,setter=setClassName:) NSString * className;
 @property(nonatomic,retain) NSArray * arguments;
-@property(nonatomic,retain) NSArray * linkedTables;
 
 + (Lite3Table*)lite3TableName:(NSString*)name withDb:(Lite3DB*)_db;
 + (Lite3Table*)lite3TableName:(NSString*)name withDb:(Lite3DB*)_db forClassName:(NSString*)_className;
@@ -81,6 +61,11 @@ OTHER DEALINGS IN THE SOFTWARE.
  * Check if the table mapped by this entity really exists.
  */
 -(BOOL)tableExists;
+
+/**
+ * Return the link tabke for the given property.
+ */
+-(Lite3LinkTable*)linkTableFor:(NSString*)propertyName;
 
 /**
  * Check to see if this object has been properly initialized.
@@ -133,6 +118,13 @@ OTHER DEALINGS IN THE SOFTWARE.
  * Select the first item that matches or nil.
  */
 - (id)selectFirst: (NSString*)selectClause;
+
+/**
+ * Selects the second side of a many-to-many relationship.
+ * In this release you have to pass a pool of objects to select from, the pool will contain the other side of the relationship.
+ * The library may decide to track this information in a session/cache but for now the responsibility is on the user of the library.
+ */
+- (NSMutableArray*)selectLinks: (id) main forProperty: (NSString*)name fromPool:(NSArray*)pool;
 
 /**
  * Delete all the objects in the database.

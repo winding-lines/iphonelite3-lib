@@ -26,6 +26,7 @@
 #import "Lite3LinkTable.h"
 #import "Lite3Table.h"
 #import "Lite3DB.h"
+#import "Lite3Arg.h"
 
 
 /**
@@ -63,6 +64,11 @@
     deleteForPrimaryStmt=NULL;
     return self;
 }
+-(NSMutableArray*)selectLinksFor:(NSString*)propertyName andId:(int) id {
+    NSString * where = [NSString stringWithFormat:@"%@_id = %d", propertyName, id ];
+    NSLog( @"---- where %@", where );
+    return [ownTable select: where ];
+}
 
 -(void)prepareArguments {
     if ( arguments != nil ) {
@@ -99,7 +105,7 @@
 -(int)updateNoTransaction: (id)data {
     NSArray * secondaryIds = [data objectForKey: [self computePropertyName]];
     NSString * _id = [data objectForKey: @"id"];
-    NSLog( @"----- _id: %@, secondaryIds: %@", _id, secondaryIds );
+    //NSLog( @"----- _id: %@, secondaryIds: %@", _id, secondaryIds );
     if ( secondaryIds == nil  || _id == nil ) {
         return 0;
     }

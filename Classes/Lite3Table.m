@@ -23,34 +23,10 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */  
 
+#import "Lite3Arg.h"
 #import "Lite3Table.h"
 #import "Lite3DB.h"
 #import "Lite3LinkTable.h"
-
-
-
-#pragma mark "---Lite3Arg ---"
-
-@implementation Lite3Arg
-@synthesize name;
-@synthesize preparedType;
-@synthesize ivar;
-
-+ (Lite3Arg*)lite3ArgWithName: (NSString*) _name class: cls andType:(int) _preparedType {
-    Lite3Arg * pa = [[Lite3Arg alloc] init];
-    pa.name = _name;
-    pa.preparedType = _preparedType;
-    return pa;
-}
-
-- (void)dealloc {
-    [name release];
-    [super dealloc];
-}
-
-
-
-@end
 
 #pragma mark "-- Lite3Table private --"
 @interface Lite3Table(Private)
@@ -59,14 +35,33 @@
 
 - (int)updateOwnTable:(id)data;
 
+- (NSMutableArray*)selectOwn:(NSString *)whereClause start: (int)start count:(int)count;
+
+- (void)truncateOwn;
+
+
 @end
 
+/**
+ * SQLite3 callback
+ */
+static int multipleRowCallback(void *helperP, int columnCount, char **values, char **columnNames);
+
+/**
+ * Class used in the communication to the sqlite3 callback.
+ */
+struct _SqlOutputHelper {
+    Lite3Table * preparedTable;
+    NSMutableArray * output;
+    Class cls;
+};
+
+typedef struct _SqlOuputHelper SqlOutputHelper;
 
 @implementation Lite3Table
 @synthesize tableName;
 @synthesize className;
 @synthesize arguments;
-@synthesize linkedTables;
 
 -(void)setClassName:(NSString*)_className {
     [className release];
@@ -78,15 +73,6 @@
     [self mapToClass: _className];
 }
 
-- (Lite3Arg*)findLite3ArgByName: (NSString*)name {
-    for ( int i=0; i<[arguments count]; i++ ) {
-        Lite3Arg * pa = [arguments objectAtIndex: i];
-        if ( [pa.name compare: name ] == NSOrderedSame ) {
-            return pa;
-        }
-    }
-    return nil;
-}
 
 
 
@@ -99,7 +85,6 @@
 }
 
 - (void)dealloc {
-    [linkedTables release];
     [tableName release]; 
     [arguments release];
     [className release];
@@ -143,9 +128,129 @@
     return TRUE;
 }
 
+
+-(Lite3LinkTable*)linkTableFor:(NSString*)propertyName {
+    Lite3Arg * arg = [Lite3Arg findByName: propertyName inArray: arguments];
+    if ( arg != nil ) {
+        return arg.link;
+    }
+    return nil;
+}
+#pragma mark "--- Lite3Table database functions ---"
+-(BOOL)tableExists {
+    NSArray * existing = [db listTables];
+    
+    for( NSString * one in existing ) {
+        if ( [one compare: tableName] == NSOrderedSame ) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+
+- (int)updateNoTransaction:(id)data {
+    int rc = [self updateOwnTable: data];
+    for ( Lite3Arg * arg in arguments ) {
+        if ( arg.preparedType == _LITE3_LINK ) {
+            [arg.link  updateNoTransaction: data];
+        }
+    }
+    return rc;
+}
+
+- (int)update:(id)data {
+    [db startTransaction: @"update"];
+    int rc = [self updateNoTransaction: data];
+    [db endTransaction];
+    return rc;
+}
+
+
+-(int)count {
+    int count;
+    int rc = sqlite3_step(countStmt);
+    [db checkError: rc message: @"Stepping count statement"];
+    count =  sqlite3_column_int(countStmt,0);
+    rc = sqlite3_reset(countStmt);
+    [db checkError: rc message: @"Resetting count statement"];
+    return count;
+    
+}
+
+- (int)updateAll:(NSArray*)objects {
+    NSDate * start = [NSDate date];
+    [db startTransaction: @"updateAll"];
+    for ( int i=0; i < [objects count]; i++ ) {
+        NSDictionary * d = [objects objectAtIndex: i];
+        NSDictionary * embedded = [d valueForKey: classNameLowerCase];
+        if ( embedded != nil ) {
+            d = embedded;
+        }
+        [self updateNoTransaction: d];
+    }
+    [db endTransaction];
+    NSTimeInterval elapsed = [start timeIntervalSinceNow];
+    NSLog(@"updateAll %@ duration %f", tableName, -elapsed);    
+    return [objects count];
+}
+
+- (NSMutableArray*)select:(NSString *)whereClause start: (int)start count:(int)count {
+    NSMutableArray * rows = [self selectOwn: whereClause start: start count: count];
+    return rows;
+}
+
+- (NSMutableArray*)selectLinks: (id) main forProperty: (NSString*)name fromPool:(NSArray*)pool {
+    Lite3Arg * arg = [Lite3Arg findByName: name inArray: arguments];
+    NSMutableArray * links = [arg.link selectLinksFor:classNameLowerCase andId: [[main valueForKey: @"_id"] intValue]];
+    NSLog( @"---- main %@ ---- id %d ------ links %@", main, [[main valueForKey: @"_id"] intValue], links );
+    if ( links == nil ) {
+        return nil;
+    }
+    NSMutableArray * output = [NSMutableArray array];
+    NSString * secondaryIdName = [NSString stringWithFormat: @"%@_id", [arg.className lowercaseString]];
+    for( id linkEntry in links ) {
+        int linkId = [[linkEntry valueForKey:secondaryIdName ] intValue];
+        for ( id one in pool ) {
+            if ( [[one valueForKey:@"_id" ] intValue] ==  linkId ) {
+                [output addObject: one];
+            }
+        }
+    }
+    return output;
+    
+}
+
+
+- (NSMutableArray*)select:(NSString*)whereClause {
+    return [self select: whereClause start: -1 count: -1 ];
+}
+
+- (id)selectFirst:(NSString*)whereClause {
+    NSArray * matches = [self select: whereClause start: -1 count: 1];
+    if ( matches == nil || [matches count] == 0 ) {
+        return nil;
+    }
+    return [matches objectAtIndex: 0];
+    
+}
+
+-(void)truncate {
+    [db startTransaction: @"truncate"];
+    for( Lite3Arg * arg in arguments ) {
+        if ( arg.preparedType == _LITE3_LINK ) {
+            [arg.link truncate];
+        }
+    }
+    [self truncateOwn];
+    [db endTransaction];
+}
+
+
+
+#pragma mark "-- private implementation --"
 - (BOOL)mapToClass: (NSString*)clsName {
     NSMutableArray * _arguments = [[NSMutableArray alloc] init];
-    NSMutableDictionary * _linkDictionary = [[NSMutableDictionary alloc] init];
     const char * _c = [clsName cStringUsingEncoding: NSASCIIStringEncoding];
     Class cls = objc_getClass(_c);
     if ( cls == nil ) {
@@ -182,15 +287,11 @@
                     const char * comma = strchr( attributes, ',' );
                     comma = comma - 5;
                     NSString * linkedClassName = [NSString stringWithCString: attributes+4 length:(comma-attributes)];
-                    if ( [_linkDictionary objectForKey: linkedClassName] == nil ) {
-                        Lite3LinkTable * linkTable = [[Lite3LinkTable alloc] initWithDb: db];
-                        linkTable.primaryTable = self;
-                        linkTable.secondaryClassName = linkedClassName;
-                        [_linkDictionary setObject:linkTable forKey:linkedClassName];
-                    }
-                    // no need to add a  prepared argument for now
-                    [pa release];
-                    pa = nil;
+                    Lite3LinkTable * linkTable = [[Lite3LinkTable alloc] initWithDb: db];
+                    linkTable.primaryTable = self;
+                    linkTable.secondaryClassName = linkedClassName;
+                    pa.preparedType = _LITE3_LINK;
+                    pa.link = linkTable;
                 } else {
                     NSLog( @"Need to decode %s", attributes );
                 }
@@ -204,41 +305,8 @@
         free( properties );
     }
     arguments = _arguments;
-    if ( [_linkDictionary count] > 0 ) {
-        linkedTables = [[NSArray alloc] initWithArray: [_linkDictionary allValues]];
-    }
     
     return TRUE;
-}
-
--(BOOL)tableExists {
-    NSArray * existing = [db listTables];
-    
-    for( NSString * one in existing ) {
-        if ( [one compare: tableName] == NSOrderedSame ) {
-            return TRUE;
-        }
-    }
-    return FALSE;
-}
-
-
-#pragma mark "--- Lite3Table database functions ---"
-- (int)updateNoTransaction:(id)data {
-    int rc = [self updateOwnTable: data];
-    if ( linkedTables != nil ) {
-        for ( Lite3LinkTable * linkTable in linkedTables ) {
-            [linkTable  updateNoTransaction: data];
-        }
-    }
-    return rc;
-}
-
-- (int)update:(id)data {
-    [db startTransaction: @"update"];
-    int rc = [self updateNoTransaction: data];
-    [db endTransaction];
-    return rc;
 }
 
 /**
@@ -247,31 +315,36 @@
 - (int)updateOwnTable:(id)data {
     int rc = sqlite3_clear_bindings(updateStmt);    
     [db checkError: rc message: @"Clearing statement bindings"];
-    for( int i=0;i<[arguments count];i++ ) {
-        Lite3Arg * pa = [arguments objectAtIndex:i];
+    int bindCount = 0;
+    for( Lite3Arg * pa in arguments ) {
+        if ( pa.preparedType == _LITE3_LINK ) {
+            continue;
+        }
+        bindCount ++;
         id toBind = [data valueForKey:pa.name];
         if ( toBind != nil && toBind != [NSNull null] ) {
             switch (pa.preparedType) {
                 case _LITE3_INT:
-                    rc = sqlite3_bind_int(updateStmt, i+1, [toBind intValue]);
+                    rc = sqlite3_bind_int(updateStmt, bindCount, [toBind intValue]);
                     [db checkError: rc message: @"Binding int"];
                     break;
                 case _LITE3_DOUBLE:
-                    rc = sqlite3_bind_double(updateStmt, i+1, [toBind floatValue]);
+                    rc = sqlite3_bind_double(updateStmt, bindCount, [toBind floatValue]);
                     [db checkError: rc message: @"Binding float"];
                     break;
                 case _LITE3_STRING:
                 {
                     const char * cString = [toBind UTF8String];
-                    rc = sqlite3_bind_text(updateStmt, i+1, cString, strlen(cString), NULL);
+                    rc = sqlite3_bind_text(updateStmt, bindCount, cString, strlen(cString), NULL);
                     [db checkError: rc message: @"Binding string"];
                 }
                     break;
                 case _LITE3_TIMESTAMP: {
                     const char * cString = [[toBind description] UTF8String];                    
-                    rc = sqlite3_bind_text(updateStmt, i+1, cString, strlen(cString), NULL );
+                    rc = sqlite3_bind_text(updateStmt, bindCount, cString, strlen(cString), NULL );
                     [db checkError: rc message: @"Binding timestamp"];
                 }
+                    break;
                 default:
                     break;
             }
@@ -289,47 +362,48 @@
     return lastId;
 }
 
--(int)count {
-    int count;
-    int rc = sqlite3_step(countStmt);
-    [db checkError: rc message: @"Stepping count statement"];
-    count =  sqlite3_column_int(countStmt,0);
-    rc = sqlite3_reset(countStmt);
-    [db checkError: rc message: @"Resetting count statement"];
-    return count;
-
-}
-
-- (int)updateAll:(NSArray*)objects {
-    NSDate * start = [NSDate date];
-    [db startTransaction: @"updateAll"];
-    for ( int i=0; i < [objects count]; i++ ) {
-        NSDictionary * d = [objects objectAtIndex: i];
-        NSDictionary * embedded = [d valueForKey: classNameLowerCase];
-        if ( embedded != nil ) {
-            d = embedded;
-        }
-        [self updateNoTransaction: d];
-    }
-    [db endTransaction];
-    NSTimeInterval elapsed = [start timeIntervalSinceNow];
-    NSLog(@"updateAll %@ duration %f", tableName, -elapsed);    
-    return [objects count];
-}
-
-
-
-
 /**
- * Class used in the communication to the sqlite3 callback.
+ * Do a select in our own table (as opposed to the link tables).
  */
-struct _SqlOutputHelper {
-    Lite3Table * preparedTable;
-    NSMutableArray * output;
-    Class cls;
-};
+- (NSMutableArray*)selectOwn:(NSString *)whereClause start: (int)start count:(int)count {
+    struct _SqlOutputHelper outputHelper;
+    outputHelper.output = [NSMutableArray array];
+    outputHelper.cls = objc_getClass([className cStringUsingEncoding: NSASCIIStringEncoding]);
+    outputHelper.preparedTable = self;
+    char *zErrMsg = NULL;
+    NSString * sql;
+    NSMutableString * limit = [[NSMutableString alloc] init];
+    if ( count > -1 ) {
+        [limit appendFormat: @" limit %d", count ];
+    }
+    if ( start > -1 ) {
+        [limit appendFormat: @" offset %d", start ];
+    }
+    if ( whereClause == nil ) {
+        sql = [NSString stringWithFormat: @"select * from %@%@", tableName, limit];
+    } else {
+        sql = [NSString stringWithFormat: @"select * from %@ where %@%@", tableName, whereClause, limit];
+    }
+    [limit release];
+    int rc = sqlite3_exec(db.dbHandle, [sql UTF8String], multipleRowCallback, (void*)&outputHelper, &zErrMsg);
+    if ( zErrMsg != NULL ) {
+        sqlite3_free(zErrMsg);
+    }
+    [db checkError: rc message: @"Executing select statement"];
+    return outputHelper.output;
+}
 
-typedef struct _SqlOuputHelper SqlOutputHelper;
+- (void)truncateOwn {
+    char *zErrMsg = NULL;
+    NSString * sql = [NSString stringWithFormat: @"delete from %@", tableName];
+    int rc = sqlite3_exec(db.dbHandle, [sql UTF8String], multipleRowCallback, NULL, &zErrMsg);
+    if ( zErrMsg != NULL ) {
+        sqlite3_free(zErrMsg);
+    }
+    [db checkError: rc message: @"Truncating table"];
+    
+}
+
 
 
 static int multipleRowCallback(void *helperP, int columnCount, char **values, char **columnNames) {
@@ -345,7 +419,7 @@ static int multipleRowCallback(void *helperP, int columnCount, char **values, ch
         const char * value = values[i];
         if ( value != NULL ) {
             NSString * nameAsString = [[NSString alloc] initWithCString: name];
-            Lite3Arg * pa = [helper->preparedTable findLite3ArgByName: nameAsString];
+            Lite3Arg * pa = [Lite3Arg findByName:nameAsString inArray:helper->preparedTable.arguments];
             [nameAsString release];
             if ( pa != nil ) {
                 if ( strcmp(name, "id") == 0 ) {
@@ -381,68 +455,7 @@ static int multipleRowCallback(void *helperP, int columnCount, char **values, ch
     return 0;
 }
 
-- (NSMutableArray*)select:(NSString *)whereClause start: (int)start count:(int)count {
-    struct _SqlOutputHelper outputHelper;
-    outputHelper.output = [NSMutableArray array];
-    outputHelper.cls = objc_getClass([className cStringUsingEncoding: NSASCIIStringEncoding]);
-    outputHelper.preparedTable = self;
-    char *zErrMsg = NULL;
-    NSString * sql;
-    NSMutableString * limit = [[NSMutableString alloc] init];
-    if ( count > -1 ) {
-        [limit appendFormat: @" limit %d", count ];
-    }
-    if ( start > -1 ) {
-        [limit appendFormat: @" offset %d", start ];
-    }
-    if ( whereClause == nil ) {
-        sql = [NSString stringWithFormat: @"select * from %@%@", tableName, limit];
-    } else {
-        sql = [NSString stringWithFormat: @"select * from %@ where %@%@", tableName, whereClause, limit];
-    }
-    [limit release];
-    int rc = sqlite3_exec(db.dbHandle, [sql UTF8String], multipleRowCallback, (void*)&outputHelper, &zErrMsg);
-    if ( zErrMsg != NULL ) {
-        sqlite3_free(zErrMsg);
-    }
-    [db checkError: rc message: @"Executing select statement"];
-    return outputHelper.output;
-}
 
-- (NSMutableArray*)select:(NSString*)whereClause {
-    return [self select: whereClause start: -1 count: -1 ];
-}
-
-- (id)selectFirst:(NSString*)whereClause {
-    NSArray * matches = [self select: whereClause start: -1 count: 1];
-    if ( matches == nil || [matches count] == 0 ) {
-        return nil;
-    }
-    return [matches objectAtIndex: 0];
-    
-}
-
-- (void)truncateOwn {
-    char *zErrMsg = NULL;
-    NSString * sql = [NSString stringWithFormat: @"delete from %@", tableName];
-    int rc = sqlite3_exec(db.dbHandle, [sql UTF8String], multipleRowCallback, NULL, &zErrMsg);
-    if ( zErrMsg != NULL ) {
-        sqlite3_free(zErrMsg);
-    }
-    [db checkError: rc message: @"Truncating table"];
-    
-}
-
--(void)truncate {
-    [db startTransaction: @"truncate"];
-    if ( linkedTables != nil ) {
-        for( Lite3LinkTable * link in linkedTables ) {
-            [link truncate];
-        }
-    }
-    [self truncateOwn];
-    [db endTransaction];
-}
 
 
 @end

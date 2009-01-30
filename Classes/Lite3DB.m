@@ -25,6 +25,7 @@
 
 #import <sqlite3.h>
 #import "Lite3DB.h"
+#import "Lite3Arg.h"
 #import "Lite3Table.h"
 #import "Lite3LinkTable.h"
 
@@ -207,19 +208,20 @@ int listTablesCallback(void *helperP, int columnCount, char **values, char **col
     NSString * className;
     for( className in tableDictionary ) {
         Lite3Table * table = [tableDictionary objectForKey:className];
-        if ( table.linkedTables != nil ) {
-            Lite3LinkTable * linked;
-            for( linked in table.linkedTables ) {
-                linked.primaryTable = table;
-                linked.secondaryTable = [tableDictionary objectForKey:linked.secondaryClassName];
-                if( linked.secondaryTable == nil ) {
-                    NSLog( @"Bad linked table %@ in primary table %@", linked.secondaryClassName, className );
-                    return FALSE;
-                }
-                if ( ![linked compileStatements] ) {
-                    NSLog(@"Could not compile staments" );
-                    return FALSE;
-                }
+        for ( Lite3Arg * arg in table.arguments ) {
+            Lite3LinkTable * linked = arg.link;
+            if ( linked == nil ) {
+                continue;
+            }
+            linked.primaryTable = table;
+            linked.secondaryTable = [tableDictionary objectForKey:linked.secondaryClassName];
+            if( linked.secondaryTable == nil ) {
+                NSLog( @"Bad linked table %@ in primary table %@", linked.secondaryClassName, className );
+                return FALSE;
+            }
+            if ( ![linked compileStatements] ) {
+                NSLog(@"Could not compile staments" );
+                return FALSE;
             }
         }
     }
@@ -229,13 +231,18 @@ int listTablesCallback(void *helperP, int columnCount, char **values, char **col
 -(BOOL)compileUpdateStatement:(sqlite3_stmt**)stmt_p tableName: (NSString*)tableName arguments: (NSArray*)arguments  {
     NSMutableString * query = [NSMutableString stringWithFormat: @"insert or replace into %@ (", tableName];
     NSMutableString * values = [[NSMutableString alloc] init];
-    for( int i=0;i<[arguments count];i++ ) {
-        if ( i > 0 ) {
+    BOOL afterFirst = FALSE;
+    for( Lite3Arg * arg in arguments ) {
+        if ( arg.preparedType == _LITE3_LINK ) {
+            continue;
+        }
+        if ( afterFirst ) {
             [query appendString: @","];
             [values appendString: @","];
         }
-        [query appendString: [[arguments objectAtIndex:i] name]];
+        [query appendString: [arg name]];
         [values appendString: @"?"];
+        afterFirst = TRUE;
     }
     [query appendString:@" ) values ("];
     [query appendString: values];
