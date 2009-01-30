@@ -203,12 +203,12 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
 - (NSMutableArray*)selectLinks: (id) main forProperty: (NSString*)name fromPool:(NSArray*)pool {
     Lite3Arg * arg = [Lite3Arg findByName: name inArray: arguments];
     NSMutableArray * links = [arg.link selectLinksFor:classNameLowerCase andId: [[main valueForKey: @"_id"] intValue]];
-    NSLog( @"---- main %@ ---- id %d ------ links %@", main, [[main valueForKey: @"_id"] intValue], links );
+    //NSLog( @"---- main %@ ---- id %d ------ links %@", main, [[main valueForKey: @"_id"] intValue], links );
     if ( links == nil ) {
         return nil;
     }
     NSMutableArray * output = [NSMutableArray array];
-    NSString * secondaryIdName = [NSString stringWithFormat: @"%@_id", [arg.className lowercaseString]];
+    NSString * secondaryIdName = [NSString stringWithFormat: @"%@_id", classNameLowerCase];
     for( id linkEntry in links ) {
         int linkId = [[linkEntry valueForKey:secondaryIdName ] intValue];
         for ( id one in pool ) {
@@ -412,7 +412,12 @@ static int multipleRowCallback(void *helperP, int columnCount, char **values, ch
     }
     struct _SqlOutputHelper * helper = (struct _SqlOutputHelper*)helperP;
     
-    id object = class_createInstance(helper->cls, 0 );
+    id object;
+    if ( helper->cls != nil ) {
+        object = class_createInstance(helper->cls, 0 );
+    } else {
+        object = [[NSMutableDictionary alloc] init];
+    }
     int i;
     for(i=0; i<columnCount; i++) {
         const char * name = columnNames[i];
@@ -421,12 +426,22 @@ static int multipleRowCallback(void *helperP, int columnCount, char **values, ch
             NSString * nameAsString = [[NSString alloc] initWithCString: name];
             Lite3Arg * pa = [Lite3Arg findByName:nameAsString inArray:helper->preparedTable.arguments];
             [nameAsString release];
-            if ( pa != nil ) {
+            if ( pa == nil ) {
+                continue;
+            }
+            if (helper->cls == nil ) {
+                // we don't have an user class backing this table
+                [object setValue: [[NSString alloc] initWithCString: value] forKey: [[NSString alloc] initWithCString: name]];
+            } else {
                 if ( strcmp(name, "id") == 0 ) {
                     name = "_id";
                 }
                 
-                void * varIndex = (void **)((char *)object + ivar_getOffset(pa.ivar));
+                void ** varIndex = (void **)((char *)object + ivar_getOffset(pa.ivar));
+                if ( varIndex == NULL ) {
+                    NSLog( @"----VAR INDEX IS NULL for %s object %p", name, object );
+                    continue;
+                }
                 switch ( pa.preparedType ) {
                     case _LITE3_INT: {
                         long extracted = atol( value );

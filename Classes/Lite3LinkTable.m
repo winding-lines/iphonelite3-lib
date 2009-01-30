@@ -76,8 +76,10 @@
     }
     Lite3Arg * primary = [[Lite3Arg alloc] init];
     primary.name = [NSString stringWithFormat: @"%@_id", [primaryTable.className lowercaseString]];
+    primary.preparedType = _LITE3_INT;
     Lite3Arg * secondary = [[Lite3Arg alloc] init];
     secondary.name = [NSString stringWithFormat: @"%@_id",[secondaryTable.className lowercaseString]];
+    secondary.preparedType = _LITE3_INT;
     arguments = [[NSArray alloc] initWithObjects: primary, secondary, nil ];
     [primary release];
     [secondary release];

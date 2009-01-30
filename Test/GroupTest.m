@@ -190,6 +190,9 @@ static const char * ddl =
     NSArray * usersForGroup = [groupsTable selectLinks: group forProperty: @"users" fromPool: users];
     STAssertNotNil( usersForGroup, @"Group has null users", nil );
     STAssertEquals ( (int)[usersForGroup count], 3, @"%d is the wrong number of users", (int)[usersForGroup count] );
+    User * firstUser = [usersForGroup objectAtIndex:0];
+    STAssertNotNil( firstUser, @"First user is empty", nil );
+    STAssertGreaterThan( firstUser._id, 0, @"First user has no id", nil );
     
 }
 
