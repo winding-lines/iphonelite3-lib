@@ -178,6 +178,8 @@ static const char * ddl =
 }
 
 - (void) testAccessManyToMany {    
+    [usersTable truncate];
+    [groupsTable truncate];
     [usersTable updateAll: [self buildImportUsers]];
     NSArray * users = [usersTable select: nil];
     STAssertNotNil( users, @"No users", nil );
