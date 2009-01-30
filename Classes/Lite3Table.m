@@ -109,8 +109,10 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
 
 + (Lite3Table*)lite3TableName:(NSString*)name withDb:(Lite3DB*)_db forClassName:(NSString*)_clsName {
     Lite3Table * pt = [Lite3Table lite3TableName:name withDb:_db];
-    pt.className = _clsName;
-    [pt compileStatements];
+    if ( pt != nil ) {
+        pt.className = _clsName;
+        [pt compileStatements];
+    }
     return pt;
 }
 
@@ -168,6 +170,9 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
 
 
 -(int)count {
+    if ( countStmt == NULL ) {
+        return -1;
+    }
     int count;
     int rc = sqlite3_step(countStmt);
     [db checkError: rc message: @"Stepping count statement"];
@@ -239,7 +244,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     [db startTransaction: @"truncate"];
     for( Lite3Arg * arg in arguments ) {
         if ( arg.preparedType == _LITE3_LINK ) {
-            [arg.link truncate];
+            [arg.link.ownTable truncateOwn];
         }
     }
     [self truncateOwn];
@@ -254,7 +259,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     const char * _c = [clsName cStringUsingEncoding: NSASCIIStringEncoding];
     Class cls = objc_getClass(_c);
     if ( cls == nil ) {
-        NSLog( @"Cannot load class '%s'", _c );
+        NSLog( @"Cannot class '%s'", _c );
         return FALSE;
     }
     objc_property_t * properties = NULL; 
@@ -313,6 +318,10 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
  * Update from the object or dictionary using Key Value access.
  */
 - (int)updateOwnTable:(id)data {
+    if ( updateStmt == NULL ) {
+        NSLog( @"No update statement" );
+        return -1;
+    }
     int rc = sqlite3_clear_bindings(updateStmt);    
     [db checkError: rc message: @"Clearing statement bindings"];
     int bindCount = 0;

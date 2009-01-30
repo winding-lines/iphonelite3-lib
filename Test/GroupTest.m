@@ -104,12 +104,14 @@ static const char * ddl =
 - (void)testGroupsTableSetup {
     STAssertNotNil( groupsTable, @"Valid groupsTable", nil );
     STAssertTrue( [groupsTable tableExists], @"Table regions does not exist", nil );
+    STAssertTrue( [groupsTable isValid], @"Table regions is not valid", nil );
     STAssertNotNil( [groupsTable linkTableFor: @"users"], nil, @"No linked table for users", nil );
 }
 
 -(void)testUsersTableSetup {
     STAssertNotNil( usersTable, @"Valid usersTable", nil );
     STAssertTrue( [usersTable tableExists], @"Table places does not exist", nil );    
+    STAssertTrue( [usersTable isValid], @"Table places is not valid", nil );    
     STAssertNotNil( usersTable.arguments, @"Bad arguments in usersTable", nil );
 }
 
