@@ -1,10 +1,27 @@
-//
-//  GroupsTest.m
-//  WindyUsers
-//
-//  Created by Marius Seritan on 1/27/09.
-//  Copyright 2009 de-co-de. All rights reserved.
-//
+/*
+ Copyright (c) 2009 copyright@de-co-de.com
+ 
+ Permission is hereby granted, free of charge, to any person
+ obtaining a copy of this software and associated documentation
+ files (the "Software"), to deal in the Software without
+ restriction, including without limitation the rights to use,
+ copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the
+ Software is furnished to do so, subject to the following
+ conditions:
+ 
+ The above copyright notice and this permission notice shall be
+ included in all copies or substantial portions of the Software.
+ 
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ OTHER DEALINGS IN THE SOFTWARE.
+ */
 #import "GTMSenTestCase.h"
 #import "GTMUnitTestDevLog.h"
 #import "Lite3DB.h"
@@ -40,10 +57,9 @@ static const char * ddl =
 - (void)setUp {
     db = [Lite3DB alloc];        
     db = [db initWithDbName: @"user_test" andSql:[NSString stringWithCString:ddl]];
-    [GTMUnitTestDevLog log: @"full path: %@", db.dbPath];
-    usersTable = [[Lite3Table lite3TableName: @"users" withDb: db forClassName:@"User"] retain];
+        usersTable = [[Lite3Table lite3TableName: @"users" withDb: db forClassName:@"User"] retain];
     groupsTable = [[Lite3Table lite3TableName: @"groups" withDb: db forClassName:@"Group"] retain];
-    // need to traverse all the tables and fix 
+    // need to traverse all the tables and fix the references 
     [db checkConsistency];
     
 }
@@ -69,10 +85,10 @@ static const char * ddl =
 }
 
 - (void)testGroupsLinkedTableSetup {
-    Lite3LinkTable * regionsUsers = [groupsTable.linkedTables objectAtIndex: 0];
-    STAssertNotNil( regionsUsers, @"Empty linkedTables", nil );
-    STAssertNotNil( regionsUsers.ownTable, @"LinkedTable does not have its own table", nil );
-    STAssertTrue( [regionsUsers.ownTable tableExists], @"LinkedTable not in the database %@", regionsUsers.ownTable.tableName );
+    Lite3LinkTable * groupsUsers = [groupsTable.linkedTables objectAtIndex: 0];
+    STAssertNotNil( groupsUsers, @"Empty linkedTables", nil );
+    STAssertNotNil( groupsUsers.ownTable, @"LinkedTable does not have its own table", nil );
+    STAssertTrue( [groupsUsers.ownTable tableExists], @"LinkedTable not in the database %@", groupsUsers.ownTable.tableName );
 }
 
 - (void) testImport {
@@ -81,15 +97,25 @@ static const char * ddl =
     NSArray * data = [NSArray arrayWithObjects: input, nil];
     STAssertNotNil ( data, @"data not nil", data );
     STAssertGreaterThan( (int)[data count], 0, @"data is empty", nil );
+    Lite3LinkTable * groupsUsers = [groupsTable.linkedTables objectAtIndex: 0];
     
     [groupsTable truncate];
     STAssertEquals( 0, [groupsTable count], @"Groups table not empty after truncate, instead %d", [groupsTable count] );
+    STAssertEquals( (int)[groupsUsers.ownTable count], 0, @"Linked table is not empty %d",  [groupsUsers.ownTable count] );
+
     [groupsTable updateAll: data];
     STAssertEquals ( 1, [groupsTable count], @"Groups table does not have proper count of rows %d", [groupsTable count] );
     
-    Lite3LinkTable * regionsUsers = [groupsTable.linkedTables objectAtIndex: 0];
-    int linksCount = [regionsUsers.ownTable count];
+    int linksCount = [groupsUsers.ownTable count];
     STAssertGreaterThan( linksCount, 0, @"Linked table is empty", nil);
+    STAssertEquals( linksCount, 3, @"Bad number of links %d", linksCount );
+
+
+    // truncate one more time
+    [groupsTable truncate];
+    STAssertEquals( 0, [groupsTable count], @"Groups table not empty after truncate, instead %d", [groupsTable count] );
+    STAssertEquals( (int)[groupsUsers.ownTable count], 0, @"Linked table is not empty %d",  [groupsUsers.ownTable count] );
+    
 }
 
 - (void)tearDown {

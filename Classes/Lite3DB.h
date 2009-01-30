@@ -64,7 +64,7 @@
 
 /**
  */
-- (BOOL)startTransaction;
+- (BOOL)startTransaction: (NSString*)label;
 
 /**
  */

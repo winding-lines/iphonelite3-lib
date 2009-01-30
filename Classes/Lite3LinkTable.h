@@ -62,8 +62,14 @@
 
 /**
  * Update the linked table from the field with the right name, if one exists.
+ * The 'right' field name is <class-lower-case>_ids
  */
--(int)update: (id)data;
+-(int)updateNoTransaction: (id)data;
+
+/**
+ * Delete the data in the table.
+ */
+-(void)truncate;
 
 
 @end

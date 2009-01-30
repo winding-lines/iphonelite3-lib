@@ -104,7 +104,8 @@
     [arguments release];
     [className release];
     [classNameLowerCase release];
-    if ( updateStmt != NULL ) {
+    if ( 
+        updateStmt != NULL ) {
         sqlite3_finalize(updateStmt);
     }
     if ( countStmt != NULL ) {
@@ -223,15 +224,23 @@
 
 
 #pragma mark "--- Lite3Table database functions ---"
-- (int)update:(id)data {
+- (int)updateNoTransaction:(id)data {
     int rc = [self updateOwnTable: data];
     if ( linkedTables != nil ) {
         for ( Lite3LinkTable * linkTable in linkedTables ) {
-            [linkTable update: data];
+            [linkTable  updateNoTransaction: data];
         }
     }
     return rc;
 }
+
+- (int)update:(id)data {
+    [db startTransaction: @"update"];
+    int rc = [self updateNoTransaction: data];
+    [db endTransaction];
+    return rc;
+}
+
 /**
  * Update from the object or dictionary using Key Value access.
  */
@@ -293,14 +302,14 @@
 
 - (int)updateAll:(NSArray*)objects {
     NSDate * start = [NSDate date];
-    [db startTransaction];
+    [db startTransaction: @"updateAll"];
     for ( int i=0; i < [objects count]; i++ ) {
         NSDictionary * d = [objects objectAtIndex: i];
         NSDictionary * embedded = [d valueForKey: classNameLowerCase];
         if ( embedded != nil ) {
             d = embedded;
         }
-        [self update: d];
+        [self updateNoTransaction: d];
     }
     [db endTransaction];
     NSTimeInterval elapsed = [start timeIntervalSinceNow];
@@ -392,7 +401,7 @@ static int multipleRowCallback(void *helperP, int columnCount, char **values, ch
     return outputHelper.output;
 }
 
-- (void)truncate {
+- (void)truncateOwn {
     char *zErrMsg = NULL;
     NSString * sql = [NSString stringWithFormat: @"delete from %@", tableName];
     int rc = sqlite3_exec(db.dbHandle, [sql UTF8String], multipleRowCallback, NULL, &zErrMsg);
@@ -401,6 +410,17 @@ static int multipleRowCallback(void *helperP, int columnCount, char **values, ch
     }
     [db checkError: rc message: @"Truncating table"];
     
+}
+
+-(void)truncate {
+    [db startTransaction: @"truncate"];
+    if ( linkedTables != nil ) {
+        for( Lite3LinkTable * link in linkedTables ) {
+            [link truncate];
+        }
+    }
+    [self truncateOwn];
+    [db endTransaction];
 }
 
 

@@ -100,9 +100,14 @@ OTHER DEALINGS IN THE SOFTWARE.
 -(int)count;
 
 /**
- * Update the table from the object or  dictionary.
+ * Update the table from the object or dictionary.
  */
 - (int)update:(id)data;
+
+/**
+ * Update without setting up a transaction, one should be setup by the caller function.
+ */
+- (int)updateNoTransaction:(id)data;
 
 /**
  * Update the table from all the elements in the array.

@@ -29,7 +29,7 @@
  * These are not really tests of the framework but more tests of my understanding of the framework.
  ***********/
 
-@interface NSArrayTest : SenTestCase {
+@interface NSArrayTest : GTMTestCase {
     
 }
 @end

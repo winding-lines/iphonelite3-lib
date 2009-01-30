@@ -38,19 +38,37 @@
 /**
  * Check to see if there is a sqlite error code and returns if so.
  */
--(BOOL)checkError: (int) rc message: (NSString*) message  {
+
+const char * getError(int rc, sqlite3* handle ) { 
     if ( rc != SQLITE_DONE && rc != SQLITE_OK && rc!= SQLITE_ROW ) {     
-        const char * error = sqlite3_errmsg( dbHandle );
-        NSLog( @"%@ -- DB error %s",  message, error );
+        const char * error = sqlite3_errmsg( handle );
+        return error;
+    }
+    return NULL;
+}
+
+-(BOOL)checkError: (int) rc message: (NSString*) message  {
+    const char * error = getError(rc,dbHandle);
+    if ( error != NULL ) {     
+        NSLog( @"%@[!! DB error %s !!]",  message, error );
         return FALSE;
     }    
     return TRUE;
 }
 
 -(BOOL)checkError: (int) rc message: (NSString*) message sql:(const char*) sql  {
-    if ( rc != SQLITE_DONE && rc != SQLITE_OK && rc!= SQLITE_ROW ) {     
-        const char * error = sqlite3_errmsg( dbHandle );        
-        NSLog( @"%@ -- DB error %s -- %s",  message, error, sql );
+    const char * error = getError(rc,dbHandle);
+    if ( error != NULL ) {     
+        NSLog( @"%@ -- DB error %s -- %s !!]",  message, error, sql );
+        return FALSE;
+    }    
+    return TRUE;
+}
+
+-(BOOL)checkError: (int) rc message: (NSString*) message label:(NSString*) label  {
+    const char * error = getError(rc,dbHandle);
+    if ( error != NULL ) {     
+        NSLog( @"%@ -- DB error %s -- %@ !!]",  message, error, label );
         return FALSE;
     }    
     return TRUE;
@@ -162,9 +180,9 @@ int listTablesCallback(void *helperP, int columnCount, char **values, char **col
 }
 
 
-- (BOOL)startTransaction {
+- (BOOL)startTransaction: (NSString*)label {
     int rc = sqlite3_exec(dbHandle, "BEGIN TRANSACTION;", 0, 0, 0);
-    return [self checkError: rc message: @"Starting transaction"];    
+    return [self checkError: rc message: @"Starting transaction" label: label];    
 }
 
 - (BOOL)endTransaction {

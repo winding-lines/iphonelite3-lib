@@ -40,7 +40,7 @@
 - (void)setUp {
     db = [Lite3DB alloc];        
     db = [db initWithDbName: @"test" andSql:@"create table users(id integer, name text);"];
-    [GTMUnitTestDevLog log: @"full path: %@", db.dbPath];
+    //[GTMUnitTestDevLog log: @"full path: %@", db.dbPath];
     userTable = [[Lite3Table lite3TableName: @"users" withDb: db forClassName:@"User"] retain];
 }
 

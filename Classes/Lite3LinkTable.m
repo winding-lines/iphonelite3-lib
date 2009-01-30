@@ -96,9 +96,10 @@
     [super dealloc];
 }
 
--(int)update: (id)data {
+-(int)updateNoTransaction: (id)data {
     NSArray * secondaryIds = [data objectForKey: [self computePropertyName]];
     NSString * _id = [data objectForKey: @"id"];
+    NSLog( @"----- _id: %@, secondaryIds: %@", _id, secondaryIds );
     if ( secondaryIds == nil  || _id == nil ) {
         return 0;
     }
@@ -106,9 +107,14 @@
     [entry setObject: _id forKey: ((Lite3Arg*)[arguments objectAtIndex: 0]).name];
     for( NSString  * secondaryId in secondaryIds ) {
         [entry setObject:secondaryId forKey:((Lite3Arg*)[arguments objectAtIndex:1]).name];
+        [ownTable updateNoTransaction: entry];
     }
     [entry release];
     return 0;
+}
+
+-(void)truncate {
+    [ownTable truncate];
 }
 
 #pragma mark "-- NamingConventions --"
