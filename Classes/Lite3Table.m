@@ -381,24 +381,45 @@ static int multipleRowCallback(void *helperP, int columnCount, char **values, ch
     return 0;
 }
 
-- (NSMutableArray*)select:(NSString *)whereClause {
+- (NSMutableArray*)select:(NSString *)whereClause start: (int)start count:(int)count {
     struct _SqlOutputHelper outputHelper;
     outputHelper.output = [NSMutableArray array];
     outputHelper.cls = objc_getClass([className cStringUsingEncoding: NSASCIIStringEncoding]);
     outputHelper.preparedTable = self;
     char *zErrMsg = NULL;
     NSString * sql;
-    if ( whereClause == nil ) {
-        sql = [NSString stringWithFormat: @"select * from %@", tableName];
-    } else {
-        sql = [NSString stringWithFormat: @"select * from %@ where %@", tableName, whereClause];
+    NSMutableString * limit = [[NSMutableString alloc] init];
+    if ( count > -1 ) {
+        [limit appendFormat: @" limit %d", count ];
     }
+    if ( start > -1 ) {
+        [limit appendFormat: @" offset %d", start ];
+    }
+    if ( whereClause == nil ) {
+        sql = [NSString stringWithFormat: @"select * from %@%@", tableName, limit];
+    } else {
+        sql = [NSString stringWithFormat: @"select * from %@ where %@%@", tableName, whereClause, limit];
+    }
+    [limit release];
     int rc = sqlite3_exec(db.dbHandle, [sql UTF8String], multipleRowCallback, (void*)&outputHelper, &zErrMsg);
     if ( zErrMsg != NULL ) {
         sqlite3_free(zErrMsg);
     }
     [db checkError: rc message: @"Executing select statement"];
     return outputHelper.output;
+}
+
+- (NSMutableArray*)select:(NSString*)whereClause {
+    return [self select: whereClause start: -1 count: -1 ];
+}
+
+- (id)selectFirst:(NSString*)whereClause {
+    NSArray * matches = [self select: whereClause start: -1 count: 1];
+    if ( matches == nil || [matches count] == 0 ) {
+        return nil;
+    }
+    return [matches objectAtIndex: 0];
+    
 }
 
 - (void)truncateOwn {

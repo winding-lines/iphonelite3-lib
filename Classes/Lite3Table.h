@@ -125,6 +125,16 @@ OTHER DEALINGS IN THE SOFTWARE.
 - (NSMutableArray*) select: (NSString*)selectClause;
 
 /**
+ * Select with limits.
+ */
+- (NSMutableArray*)select:(NSString *)whereClause start: (int)start count:(int)count;
+
+/**
+ * Select the first item that matches or nil.
+ */
+- (id)selectFirst: (NSString*)selectClause;
+
+/**
  * Delete all the objects in the database.
  */
 - (void)truncate;
