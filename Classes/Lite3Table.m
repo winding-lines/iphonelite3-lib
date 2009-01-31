@@ -205,9 +205,9 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     return rows;
 }
 
-- (NSMutableArray*)selectLinks: (id) main forProperty: (NSString*)name fromPool:(NSArray*)pool {
+- (NSMutableArray*)filterArray: (NSArray*)pool forOwner:(id)owner andProperty: (NSString*)name {
     Lite3Arg * arg = [Lite3Arg findByName: name inArray: arguments];
-    NSMutableArray * links = [arg.link selectLinksFor:classNameLowerCase andId: [[main valueForKey: @"_id"] intValue]];
+    NSMutableArray * links = [arg.link selectLinksFor:classNameLowerCase andId: [[owner valueForKey: @"_id"] intValue]];
     //NSLog( @"---- main %@ ---- id %d ------ links %@", main, [[main valueForKey: @"_id"] intValue], links );
     if ( links == nil ) {
         return nil;

@@ -120,11 +120,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 - (id)selectFirst: (NSString*)selectClause;
 
 /**
- * Selects the second side of a many-to-many relationship.
+ * Retrieves the second side of a many-to-many relationship.
  * In this release you have to pass a pool of objects to select from, the pool will contain the other side of the relationship.
  * The library may decide to track this information in a session/cache but for now the responsibility is on the user of the library.
  */
-- (NSMutableArray*)selectLinks: (id) main forProperty: (NSString*)name fromPool:(NSArray*)pool;
+- (NSMutableArray*)filterArray: (NSArray*)pool forOwner:(id)owner andProperty: (NSString*)name;
 
 /**
  * Delete all the objects in the database.
