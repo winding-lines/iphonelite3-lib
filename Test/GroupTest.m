@@ -197,6 +197,10 @@ static const char * ddl =
     User * firstUser = [usersForGroup objectAtIndex:0];
     STAssertNotNil( firstUser, @"First user is empty", nil );
     STAssertGreaterThan( firstUser._id, 0, @"First user has no id", nil );
+    User * secondUser = [usersForGroup objectAtIndex:1];
+    STAssertNotNil( secondUser, @"Second user is empty", nil );
+    STAssertGreaterThan( secondUser._id, 0, @"Second user has no id", nil );
+    STAssertFalse( firstUser._id == secondUser._id, @"First and second user id identical %d", firstUser._id );
     
 }
 

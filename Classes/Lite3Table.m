@@ -213,12 +213,15 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
         return nil;
     }
     NSMutableArray * output = [NSMutableArray array];
-    NSString * secondaryIdName = [NSString stringWithFormat: @"%@_id", classNameLowerCase];
+    NSString * secondaryIdName = [NSString stringWithFormat: @"%@_id", arg.link.secondaryTable->classNameLowerCase];
+    NSLog( @"secondaryIdName ----- %@", secondaryIdName );
     for( id linkEntry in links ) {
         int linkId = [[linkEntry valueForKey:secondaryIdName ] intValue];
+        NSLog( @"linkId ------- %d", linkId );
         for ( id one in pool ) {
             if ( [[one valueForKey:@"_id" ] intValue] ==  linkId ) {
                 [output addObject: one];
+                break;
             }
         }
     }
