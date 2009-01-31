@@ -259,6 +259,7 @@ int listTablesCallback(void *helperP, int columnCount, char **values, char **col
 -(BOOL)compileCountStatement:(sqlite3_stmt**)stmt_p tableName: (NSString*)tableName {
     NSString * query = [[NSString alloc] initWithFormat: @"select count(*) from %@;", tableName ];
     int rc = sqlite3_prepare_v2( dbHandle, [query UTF8String], -1, stmt_p, NULL);
+    [query release];
     return [self checkError: rc message: @"Creating count statement"];
 }
 
