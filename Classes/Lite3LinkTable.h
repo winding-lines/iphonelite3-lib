@@ -38,17 +38,23 @@
     
     // Provide functionality on the link table itself
     Lite3Table *ownTable;
+    // the arguments used for the precompiled statements
+    NSArray * arguments;
+    
     // link to the main table, one side of the many-to-many relationship
     Lite3Table * primaryTable;
     
     // name of the class for the other side of the relationship
     NSString * secondaryClassName;
+
     // link to the second table (only linked after all the tables have been read in)
     Lite3Table * secondaryTable;
+    
     // precompiled delete statement for a given primary class id
     sqlite3_stmt * deleteForPrimaryStmt;
     
-    NSArray * arguments;
+    // property name to used when importing links from the json
+    NSString * importPropertyName;
 }
 
 @property (nonatomic,retain) Lite3Table * ownTable;

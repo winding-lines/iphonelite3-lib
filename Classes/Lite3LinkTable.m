@@ -36,6 +36,11 @@
 @interface Lite3LinkTable(NamingConventions)
 
 /**
+ * Compute the property name to look for the array of IDs in the incoming data.
+ */
+- (NSString*) computeImportPropertyName;
+
+/**
  * Compute the table name for the link table (ruby on rails convention)
  * - sort the table names alphabetically
  * - join them with '_'
@@ -44,9 +49,9 @@
 - (NSString*) computeLinkTableName;
 
 /**
- * Compute the property name to look for the array of IDs in the incoming data.
+ * Compute the column name inside the link table.
  */
-- (NSString*) computePropertyName;
+- (NSString*)computeColumnName: (NSString*)className;
 @end
 
 @implementation Lite3LinkTable
@@ -66,7 +71,6 @@
 }
 -(NSMutableArray*)selectLinksFor:(NSString*)propertyName andId:(int) id {
     NSString * where = [NSString stringWithFormat:@"%@_id = %d", propertyName, id ];
-    NSLog( @"---- where %@", where );
     return [ownTable select: where ];
 }
 
@@ -75,24 +79,30 @@
         return;
     }
     Lite3Arg * primary = [[Lite3Arg alloc] init];
-    primary.name = [NSString stringWithFormat: @"%@_id", [primaryTable.className lowercaseString]];
+    primary.name = [self computeColumnName: primaryTable.className];
     primary.preparedType = _LITE3_INT;
     Lite3Arg * secondary = [[Lite3Arg alloc] init];
-    secondary.name = [NSString stringWithFormat: @"%@_id",[secondaryTable.className lowercaseString]];
+    secondary.name = [self computeColumnName: secondaryTable.className];
     secondary.preparedType = _LITE3_INT;
     arguments = [[NSArray alloc] initWithObjects: primary, secondary, nil ];
     [primary release];
     [secondary release];
+    importPropertyName = [[self computeImportPropertyName] retain];
 }
 
 -(BOOL)compileStatements  {
     [self prepareArguments];
-    ownTable = [Lite3Table lite3TableName:[self computeLinkTableName] withDb:db];
+    ownTable = [[Lite3Table lite3TableName:[self computeLinkTableName] withDb:db] retain];
     ownTable.arguments = arguments;
-    return [ownTable compileStatements];
+    if ( ![ownTable tableExists ] ) {
+        NSLog( @"Error: the table %@ does not exist", [ownTable tableName] );
+    }
+    BOOL rc = [ownTable compileStatements];
+    return rc;
 }
 
 -(void)dealloc {
+    [importPropertyName release];
     [ownTable release];
     if( deleteForPrimaryStmt != NULL ) {
         sqlite3_finalize(deleteForPrimaryStmt); deleteForPrimaryStmt=NULL;
@@ -105,16 +115,17 @@
 }
 
 -(int)updateNoTransaction: (id)data {
-    NSArray * secondaryIds = [data objectForKey: [self computePropertyName]];
-    NSString * _id = [data objectForKey: @"id"];
-    //NSLog( @"----- _id: %@, secondaryIds: %@", _id, secondaryIds );
+    NSArray * secondaryIds = [data objectForKey: importPropertyName];
+    id _id = [data objectForKey: @"id"];
+    //NSLog( @"----- _id: %@, importPropertyName: %@, secondaryIds: %@", _id, importPropertyName, secondaryIds );
     if ( secondaryIds == nil  || _id == nil ) {
         return 0;
     }
     NSMutableDictionary * entry = [[NSMutableDictionary alloc] init];
     [entry setObject: _id forKey: ((Lite3Arg*)[arguments objectAtIndex: 0]).name];
-    for( NSString  * secondaryId in secondaryIds ) {
-        [entry setObject:secondaryId forKey:((Lite3Arg*)[arguments objectAtIndex:1]).name];
+    NSString * secondKey = ((Lite3Arg*)[arguments objectAtIndex:1]).name;
+    for( id secondaryId in secondaryIds ) {
+        [entry setObject:secondaryId forKey: secondKey];
         [ownTable updateNoTransaction: entry];
     }
     [entry release];
@@ -134,7 +145,12 @@
     }
 }
 
-- (NSString*) computePropertyName {
+- (NSString*) computeImportPropertyName {
     return [NSString stringWithFormat: @"%@_ids", [secondaryTable.className lowercaseString] ];
 }
+
+- (NSString*)computeColumnName: (NSString*)className {
+    return [NSString stringWithFormat: @"%@_id", [className lowercaseString]];
+}
+
 @end
