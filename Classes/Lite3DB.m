@@ -51,7 +51,7 @@ const char * getError(int rc, sqlite3* handle ) {
 -(BOOL)checkError: (int) rc message: (NSString*) message  {
     const char * error = getError(rc,dbHandle);
     if ( error != NULL ) {     
-        NSLog( @"%@[!! DB error %s !!]",  message, error );
+        ALog( @"%@[!! DB error %s !!]",  message, error );
         return FALSE;
     }    
     return TRUE;
@@ -60,7 +60,7 @@ const char * getError(int rc, sqlite3* handle ) {
 -(BOOL)checkError: (int) rc message: (NSString*) message sql:(const char*) sql  {
     const char * error = getError(rc,dbHandle);
     if ( error != NULL ) {     
-        NSLog( @"%@ -- DB error %s -- %s !!]",  message, error, sql );
+        ALog( @"%@ -- DB error %s -- %s !!]",  message, error, sql );
         return FALSE;
     }    
     return TRUE;
@@ -69,7 +69,7 @@ const char * getError(int rc, sqlite3* handle ) {
 -(BOOL)checkError: (int) rc message: (NSString*) message label:(NSString*) label  {
     const char * error = getError(rc,dbHandle);
     if ( error != NULL ) {     
-        NSLog( @"%@ -- DB error %s -- %@ !!]",  message, error, label );
+        ALog( @"%@ -- DB error %s -- %@ !!]",  message, error, label );
         return FALSE;
     }    
     return TRUE;
@@ -109,18 +109,18 @@ const char * getError(int rc, sqlite3* handle ) {
             NSError *error = nil;
             BOOL success = [fileManager copyItemAtPath:bundleDB toPath:dbPath error:&error];
             if(!success) {
-                NSLog(@"error = %@", error);
+                ALog(@"error = %@", error);
             }
         }
     } else if(!dirExists) {
         NSError *error = nil;
         BOOL success =[fileManager createDirectoryAtPath:dbNameDir withIntermediateDirectories: YES  attributes:nil error: NULL];
         if(!success) {
-            NSLog(@"failed to create dir %@", dbNameDir);
+            ALog(@"failed to create dir %@", dbNameDir);
         }
         success = [fileManager copyItemAtPath:bundleDB toPath:dbPath error:&error];
         if(!success) {
-            NSLog(@"error = %@", error);
+            ALog(@"error = %@", error);
         }
     }
     return dbPath;
@@ -216,11 +216,11 @@ int listTablesCallback(void *helperP, int columnCount, char **values, char **col
             linked.primaryTable = table;
             linked.secondaryTable = [tableDictionary objectForKey:linked.secondaryClassName];
             if( linked.secondaryTable == nil ) {
-                NSLog( @"Bad linked table %@ in primary table %@", linked.secondaryClassName, className );
+                ALog( @"Bad linked table %@ in primary table %@", linked.secondaryClassName, className );
                 return FALSE;
             }
             if ( ![linked compileStatements] ) {
-                NSLog(@"Could not compile staments" );
+                ALog(@"Could not compile staments" );
                 return FALSE;
             }
         }
@@ -249,7 +249,7 @@ int listTablesCallback(void *helperP, int columnCount, char **values, char **col
     [query appendString: @");"];
     [values release];
     values = nil;
-    // NSLog(@"Creating stored procedure %@.", query);
+    // ALog(@"Creating stored procedure %@.", query);
     const char *cString =[query UTF8String];
     int rc = sqlite3_prepare_v2( dbHandle, cString, -1, stmt_p, NULL );
     return [self checkError: rc message: @"Creating update statement" sql: cString ];

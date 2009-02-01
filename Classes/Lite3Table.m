@@ -196,7 +196,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     }
     [db endTransaction];
     NSTimeInterval elapsed = [start timeIntervalSinceNow];
-    NSLog(@"updateAll %@ duration %f", tableName, -elapsed);    
+    ALog(@"updateAll %@ duration %f", tableName, -elapsed);    
     return [objects count];
 }
 
@@ -208,16 +208,16 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
 - (NSMutableArray*)filterArray: (NSArray*)pool forOwner:(id)owner andProperty: (NSString*)name {
     Lite3Arg * arg = [Lite3Arg findByName: name inArray: arguments];
     NSMutableArray * links = [arg.link selectLinksFor:classNameLowerCase andId: [[owner valueForKey: @"_id"] intValue]];
-    //NSLog( @"---- main %@ ---- id %d ------ links %@", main, [[main valueForKey: @"_id"] intValue], links );
+    //ALog( @"---- main %@ ---- id %d ------ links %@", main, [[main valueForKey: @"_id"] intValue], links );
     if ( links == nil ) {
         return nil;
     }
     NSMutableArray * output = [NSMutableArray array];
     NSString * secondaryIdName = [NSString stringWithFormat: @"%@_id", arg.link.secondaryTable->classNameLowerCase];
-    NSLog( @"secondaryIdName ----- %@", secondaryIdName );
+    ALog( @"secondaryIdName ----- %@", secondaryIdName );
     for( id linkEntry in links ) {
         int linkId = [[linkEntry valueForKey:secondaryIdName ] intValue];
-        NSLog( @"linkId ------- %d", linkId );
+        ALog( @"linkId ------- %d", linkId );
         for ( id one in pool ) {
             if ( [[one valueForKey:@"_id" ] intValue] ==  linkId ) {
                 [output addObject: one];
@@ -262,7 +262,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     const char * _c = [clsName cStringUsingEncoding: NSASCIIStringEncoding];
     Class cls = objc_getClass(_c);
     if ( cls == nil ) {
-        NSLog( @"Cannot class '%s'", _c );
+        ALog( @"Cannot class '%s'", _c );
         return FALSE;
     }
     objc_property_t * properties = NULL; 
@@ -301,7 +301,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
                     pa.preparedType = _LITE3_LINK;
                     pa.link = linkTable;
                 } else {
-                    NSLog( @"Need to decode %s", attributes );
+                    ALog( @"Need to decode %s", attributes );
                 }
             }
             if( pa != nil ) {
@@ -322,7 +322,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
  */
 - (int)updateOwnTable:(id)data {
     if ( updateStmt == NULL ) {
-        NSLog( @"No update statement" );
+        ALog( @"No update statement" );
         return -1;
     }
     int rc = sqlite3_clear_bindings(updateStmt);    
@@ -364,9 +364,9 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     }
     rc = sqlite3_step(updateStmt);
     sqlite_int64 lastId = sqlite3_last_insert_rowid(db.dbHandle);
-    //NSLog( @"last id: %d", lastId );
+    //ALog( @"last id: %d", lastId );
     if ( lastId == 0 ) {
-        NSLog( @"No value inserted" );
+        ALog( @"No value inserted" );
     }
     [db checkError: rc message: @"Getting last insert row"];
     rc = sqlite3_reset(updateStmt);
@@ -451,7 +451,7 @@ static int multipleRowCallback(void *helperP, int columnCount, char **values, ch
                 
                 void ** varIndex = (void **)((char *)object + ivar_getOffset(pa.ivar));
                 if ( varIndex == NULL ) {
-                    NSLog( @"----VAR INDEX IS NULL for %s object %p", name, object );
+                    ALog( @"----VAR INDEX IS NULL for %s object %p", name, object );
                     continue;
                 }
                 switch ( pa.preparedType ) {

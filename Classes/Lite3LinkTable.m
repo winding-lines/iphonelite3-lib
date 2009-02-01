@@ -95,7 +95,7 @@
     ownTable = [[Lite3Table lite3TableName:[self computeLinkTableName] withDb:db] retain];
     ownTable.arguments = arguments;
     if ( ![ownTable tableExists ] ) {
-        NSLog( @"Error: the table %@ does not exist", [ownTable tableName] );
+        ALog( @"Error: the table %@ does not exist", [ownTable tableName] );
     }
     BOOL rc = [ownTable compileStatements];
     return rc;
@@ -117,7 +117,7 @@
 -(int)updateNoTransaction: (id)data {
     NSArray * secondaryIds = [data objectForKey: importPropertyName];
     id _id = [data objectForKey: @"id"];
-    //NSLog( @"----- _id: %@, importPropertyName: %@, secondaryIds: %@", _id, importPropertyName, secondaryIds );
+    //ALog( @"----- _id: %@, importPropertyName: %@, secondaryIds: %@", _id, importPropertyName, secondaryIds );
     if ( secondaryIds == nil  || _id == nil ) {
         return 0;
     }
