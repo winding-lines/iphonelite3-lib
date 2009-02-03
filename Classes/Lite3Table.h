@@ -109,6 +109,12 @@ OTHER DEALINGS IN THE SOFTWARE.
  */
 - (NSMutableArray*) select: (NSString*)selectClause;
 
+
+/**
+ * Return the count of objects that match the whereClause.
+ */
+- (int) count: (NSString*)whereClause;
+
 /**
  * Select with limits.
  */
@@ -125,6 +131,19 @@ OTHER DEALINGS IN THE SOFTWARE.
  * The library may decide to track this information in a session/cache but for now the responsibility is on the user of the library.
  */
 - (NSMutableArray*)filterArray: (NSArray*)pool forOwner:(id)owner andProperty: (NSString*)name;
+
+/**
+ * Count the many-to-many associations in the database without fetching the data.
+ * Returns the count for one primary object.
+ */
+- (int)countAssociations:(id)primary forProperty:(NSString*)name;
+
+/**
+ * Count the many-to-many associations in the database without fetching the data.
+ * Expects an array of primary objects and will return an array of counts.
+ */
+- (NSArray*)countAssociationsMultiple:(NSArray*)primary forProperty:(NSString*)name;
+
 
 /**
  * Delete all the objects in the database.

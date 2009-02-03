@@ -35,7 +35,7 @@
 
 - (int)updateOwnTable:(id)data;
 
-- (NSMutableArray*)selectOwn:(NSString *)whereClause start: (int)start count:(int)count;
+- (NSMutableArray*)selectOwn:(NSString *)whereClause start: (int)start count:(int)count withAggregate:(NSString*)aggregate;
 
 - (void)truncateOwn;
 
@@ -43,12 +43,15 @@
 @end
 
 /**
- * SQLite3 callback
+ * SQLite3 callbacks
  */
+static int singleRowCallback(void *helperP, int columnCount, char **values, char **columnNames);
+
 static int multipleRowCallback(void *helperP, int columnCount, char **values, char **columnNames);
 
+
 /**
- * Class used in the communication to the sqlite3 callback.
+ * Class used in the communication to the sqlite3 multipleRowCallback.
  */
 struct _SqlOutputHelper {
     Lite3Table * preparedTable;
@@ -183,6 +186,12 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     
 }
 
+- (int) count: (NSString*)whereClause {
+    NSArray * result = [self selectOwn:whereClause start: -1 count: -1 withAggregate: @"count" ];
+    NSMutableDictionary * dict = (NSMutableDictionary*)[result objectAtIndex:0];
+    return [[dict objectForKey:@"count(*)"] intValue];
+}
+
 - (int)updateAll:(NSArray*)objects {
     NSDate * start = [NSDate date];
     [db startTransaction: @"updateAll"];
@@ -201,7 +210,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
 }
 
 - (NSMutableArray*)select:(NSString *)whereClause start: (int)start count:(int)count {
-    NSMutableArray * rows = [self selectOwn: whereClause start: start count: count];
+    NSMutableArray * rows = [self selectOwn: whereClause start: start count: count withAggregate:nil];
     return rows;
 }
 
@@ -214,10 +223,8 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     }
     NSMutableArray * output = [NSMutableArray array];
     NSString * secondaryIdName = [NSString stringWithFormat: @"%@_id", arg.link.secondaryTable->classNameLowerCase];
-    ALog( @"secondaryIdName ----- %@", secondaryIdName );
     for( id linkEntry in links ) {
         int linkId = [[linkEntry valueForKey:secondaryIdName ] intValue];
-        ALog( @"linkId ------- %d", linkId );
         for ( id one in pool ) {
             if ( [[one valueForKey:@"_id" ] intValue] ==  linkId ) {
                 [output addObject: one];
@@ -252,6 +259,17 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     }
     [self truncateOwn];
     [db endTransaction];
+}
+
+- (int)countAssociations:(id)owner forProperty:(NSString*)name {
+    Lite3Arg * arg = [Lite3Arg findByName: name inArray: arguments];    
+    int linkCount = [arg.link countLinksFor:classNameLowerCase andId: [[owner valueForKey: @"_id"] intValue]];
+    return linkCount;
+}
+
+- (NSArray*)countAssociationsMultiple:(NSArray*)primary forProperty:(NSString*)name {
+    // work in progress
+    return nil;
 }
 
 
@@ -377,10 +395,15 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
 /**
  * Do a select in our own table (as opposed to the link tables).
  */
-- (NSMutableArray*)selectOwn:(NSString *)whereClause start: (int)start count:(int)count {
+- (NSMutableArray*)selectOwn:(NSString *)whereClause start: (int)start count:(int)count withAggregate:(NSString*)aggregate {
     struct _SqlOutputHelper outputHelper;
     outputHelper.output = [NSMutableArray array];
-    outputHelper.cls = objc_getClass([className cStringUsingEncoding: NSASCIIStringEncoding]);
+    if ( aggregate == nil ) {
+        outputHelper.cls = objc_getClass([className cStringUsingEncoding: NSASCIIStringEncoding]);
+    } else {
+        // passing a class does not make sense when aggregate functions are passed in.
+        outputHelper.cls = NULL;
+    }
     outputHelper.preparedTable = self;
     char *zErrMsg = NULL;
     NSString * sql;
@@ -391,10 +414,14 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     if ( start > -1 ) {
         [limit appendFormat: @" offset %d", start ];
     }
+    NSString * selectExpr = @"*";
+    if ( aggregate != nil ) {
+        selectExpr = [NSString stringWithFormat: @"%@(*)", aggregate];
+    }
     if ( whereClause == nil ) {
-        sql = [NSString stringWithFormat: @"select * from %@%@", tableName, limit];
+        sql = [NSString stringWithFormat: @"select %@ from %@%@", selectExpr, tableName, limit];
     } else {
-        sql = [NSString stringWithFormat: @"select * from %@ where %@%@", tableName, whereClause, limit];
+        sql = [NSString stringWithFormat: @"select %@ from %@ where %@%@", selectExpr, tableName, whereClause, limit];
     }
     [limit release];
     int rc = sqlite3_exec(db.dbHandle, [sql UTF8String], multipleRowCallback, (void*)&outputHelper, &zErrMsg);
@@ -417,7 +444,6 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
 }
 
 
-
 static int multipleRowCallback(void *helperP, int columnCount, char **values, char **columnNames) {
     if ( helperP == NULL ) {
         return 0;
@@ -431,20 +457,21 @@ static int multipleRowCallback(void *helperP, int columnCount, char **values, ch
         object = [[NSMutableDictionary alloc] init];
     }
     int i;
+    NSString * nameAsString = nil;
     for(i=0; i<columnCount; i++) {
         const char * name = columnNames[i];
         const char * value = values[i];
         if ( value != NULL ) {
-            NSString * nameAsString = [[NSString alloc] initWithCString: name];
-            Lite3Arg * pa = [Lite3Arg findByName:nameAsString inArray:helper->preparedTable.arguments];
             [nameAsString release];
-            if ( pa == nil ) {
-                continue;
-            }
+            NSString * nameAsString = [[NSString alloc] initWithCString: name];
             if (helper->cls == nil ) {
                 // we don't have an user class backing this table
-                [object setValue: [[NSString alloc] initWithCString: value] forKey: [[NSString alloc] initWithCString: name]];
+                [object setValue: [[NSString alloc] initWithCString: value] forKey: nameAsString];
             } else {
+                Lite3Arg * pa = [Lite3Arg findByName:nameAsString inArray:helper->preparedTable.arguments];
+                if ( pa == nil ) {
+                    continue;
+                }
                 if ( strcmp(name, "id") == 0 ) {
                     name = "_id";
                 }
@@ -477,6 +504,7 @@ static int multipleRowCallback(void *helperP, int columnCount, char **values, ch
                 }
             }                        
         }
+        [nameAsString release];                
     }
     [helper->output addObject: object];
     return 0;

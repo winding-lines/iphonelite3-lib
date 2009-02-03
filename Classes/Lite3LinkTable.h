@@ -77,6 +77,14 @@
  */
 -(void)truncate;
 
+/**
+ * Return the IDs of the secondary property that are associated with the propertyName._id.
+ */
 -(NSMutableArray*)selectLinksFor:(NSString*)propertyName andId:(int) _id;
+
+/**
+ * Return just the count of the secondary property that are associated with propertyName._id. 
+ */
+-(int)countLinksFor:(NSString*)propertyName andId:(int) _id;
 
 @end

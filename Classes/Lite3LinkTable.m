@@ -69,9 +69,15 @@
     deleteForPrimaryStmt=NULL;
     return self;
 }
+
 -(NSMutableArray*)selectLinksFor:(NSString*)propertyName andId:(int) id {
     NSString * where = [NSString stringWithFormat:@"%@_id = %d", propertyName, id ];
     return [ownTable select: where ];
+}
+
+-(int)countLinksFor:(NSString*)propertyName andId:(int) id {
+    NSString * where = [NSString stringWithFormat:@"%@_id = %d", propertyName, id ];
+    return [ownTable count: where ];
 }
 
 -(void)prepareArguments {

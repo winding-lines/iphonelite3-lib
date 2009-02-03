@@ -204,6 +204,16 @@ static const char * ddl =
     
 }
 
+-(void) testCount {
+    [usersTable truncate];
+    [groupsTable truncate];
+    [usersTable updateAll: [self buildImportUsers]];
+    NSArray * users = [usersTable select: nil];
+    STAssertNotNil( users, @"No users", nil );
+    STAssertEquals ( (int)[users count], 3, @"%d is wrong user count", (int)[users count]);
+    STAssertEquals( (int)[usersTable count: @"id<3"], 2, @"%d is wrong count-where", (int)[usersTable count: @"id<3"]);
+}
+
 - (void)tearDown {
     [usersTable release];
     [groupsTable release];
