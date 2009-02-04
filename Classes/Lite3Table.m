@@ -443,6 +443,43 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     
 }
 
+-(void) setProperty:(NSString *) name inObject: (id) object toValue: (const char *) value  {
+    Lite3Arg * pa = [Lite3Arg findByName:name inArray: arguments];
+    if ( pa == nil ) {
+        return;
+    }
+    if ( [name isEqualToString: @"id"]) {
+        name = @"_id";
+    }
+    
+    void ** varIndex = (void **)((char *)object + ivar_getOffset(pa.ivar));
+    if ( varIndex == NULL ) {
+        ALog( @"----VAR INDEX IS NULL for %@ object %p", name, object );
+        return;
+    }
+    switch ( pa.preparedType ) {
+        case _LITE3_INT: {
+            long extracted = atol( value );
+            
+            *(long*)varIndex = extracted;
+        }
+            break;
+        case _LITE3_DOUBLE: {
+            double extracted = atof( value );
+            *(double*)varIndex = extracted;
+        } 
+            break;
+        case _LITE3_STRING: {
+            NSString * extracted = [[NSString stringWithCString:value encoding:NSUTF8StringEncoding] retain];
+            object_setInstanceVariable( object, [name UTF8String], extracted );
+        } break;
+        case _LITE3_TIMESTAMP: {
+            NSString * extracted = [[NSString stringWithCString:value encoding:NSUTF8StringEncoding] retain];
+            object_setInstanceVariable( object, [name UTF8String], extracted );
+        } break;
+    }
+}
+
 
 static int multipleRowCallback(void *helperP, int columnCount, char **values, char **columnNames) {
     if ( helperP == NULL ) {
@@ -457,52 +494,19 @@ static int multipleRowCallback(void *helperP, int columnCount, char **values, ch
         object = [[NSMutableDictionary alloc] init];
     }
     int i;
-    NSString * nameAsString = nil;
     for(i=0; i<columnCount; i++) {
+        
         const char * name = columnNames[i];
         const char * value = values[i];
-        if ( value != NULL ) {
-            [nameAsString release];
-            NSString * nameAsString = [[NSString alloc] initWithCString: name];
-            if (helper->cls == nil ) {
-                // we don't have an user class backing this table
-                [object setValue: [[NSString alloc] initWithCString: value] forKey: nameAsString];
-            } else {
-                Lite3Arg * pa = [Lite3Arg findByName:nameAsString inArray:helper->preparedTable.arguments];
-                if ( pa == nil ) {
-                    continue;
-                }
-                if ( strcmp(name, "id") == 0 ) {
-                    name = "_id";
-                }
-                
-                void ** varIndex = (void **)((char *)object + ivar_getOffset(pa.ivar));
-                if ( varIndex == NULL ) {
-                    ALog( @"----VAR INDEX IS NULL for %s object %p", name, object );
-                    continue;
-                }
-                switch ( pa.preparedType ) {
-                    case _LITE3_INT: {
-                        long extracted = atol( value );
-                        
-                        *(long*)varIndex = extracted;
-                    }
-                        break;
-                    case _LITE3_DOUBLE: {
-                        double extracted = atof( value );
-                        *(double*)varIndex = extracted;
-                    } 
-                        break;
-                    case _LITE3_STRING: {
-                        NSString * extracted = [[NSString stringWithCString:value encoding:NSUTF8StringEncoding] retain];
-                        object_setInstanceVariable( object, name, extracted );
-                    } break;
-                    case _LITE3_TIMESTAMP: {
-                        NSString * extracted = [[NSString stringWithCString:value encoding:NSUTF8StringEncoding] retain];
-                        object_setInstanceVariable( object, name, extracted );
-                    } break;
-                }
-            }                        
+        if ( value == NULL ) {
+            continue;
+        }
+        NSString * nameAsString = [[NSString alloc] initWithCString: name];
+        if (helper->cls == nil ) {
+            // we don't have an user class backing this table
+            [object setValue: [[NSString alloc] initWithCString: value] forKey: nameAsString];
+        } else {
+            [helper->preparedTable setProperty: nameAsString inObject: object toValue: value ];
         }
         [nameAsString release];                
     }
