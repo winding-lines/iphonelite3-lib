@@ -214,6 +214,14 @@ static const char * ddl =
     STAssertEquals( (int)[usersTable count: @"id<3"], 2, @"%d is wrong count-where", (int)[usersTable count: @"id<3"]);
 }
 
+-(void) testCreate {
+    User * user = [[User alloc] init];
+    user._id = 0; // this signifies new item
+    user.name = @"name1";
+    [usersTable update: user];
+    STAssertGreaterThan( user._id, 0, @"Wrong id after creating new user %d", user._id );
+}
+
 - (void)tearDown {
     [usersTable release];
     [groupsTable release];

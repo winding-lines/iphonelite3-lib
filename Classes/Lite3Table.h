@@ -123,7 +123,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 /**
  * Select the first item that matches or nil.
  */
-- (id)selectFirst: (NSString*)selectClause;
+- (id)selectFirst:(NSString*)whereFormat, ...;
 
 /**
  * Retrieves the second side of a many-to-many relationship.

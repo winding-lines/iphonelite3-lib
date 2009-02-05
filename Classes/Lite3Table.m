@@ -39,6 +39,7 @@
 
 - (void)truncateOwn;
 
+-(void) setProperty:(NSString *) name inObject: (id) object toInt:(int) value;
 
 @end
 
@@ -241,7 +242,15 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     return [self select: whereClause start: -1 count: -1 ];
 }
 
-- (id)selectFirst:(NSString*)whereClause {
+
+- (id)selectFirst:(NSString*)whereFormat, ... {
+    NSString * whereClause = nil;
+    if ( whereFormat != nil ) {
+        va_list argumentList;
+        va_start( argumentList, whereFormat );
+        whereClause = [[[NSString alloc] initWithFormat:whereFormat arguments:argumentList] autorelease];
+        va_end( argumentList );
+    }
     NSArray * matches = [self select: whereClause start: -1 count: 1];
     if ( matches == nil || [matches count] == 0 ) {
         return nil;
@@ -346,6 +355,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     int rc = sqlite3_clear_bindings(updateStmt);    
     [db checkError: rc message: @"Clearing statement bindings"];
     int bindCount = 0;
+    BOOL isCreate = FALSE; // track create operations to save the ID back in the object
     for( Lite3Arg * pa in arguments ) {
         if ( pa.preparedType == _LITE3_LINK ) {
             continue;
@@ -354,9 +364,20 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
         id toBind = [data valueForKey:pa.name];
         if ( toBind != nil && toBind != [NSNull null] ) {
             switch (pa.preparedType) {
-                case _LITE3_INT:
-                    rc = sqlite3_bind_int(updateStmt, bindCount, [toBind intValue]);
+                case _LITE3_INT: {
+                    // check to see if this is an id of 0 and then set the stored proc to null
+                    // your database should be created with 
+                    // "id" INTEGER PRIMARY KEY NOT NULL AUTOINCREMENT
+                    int value = [toBind intValue];
+                    if ( [pa.name isEqualToString: @"id"]  && value == 0 ) {
+                        NSLog( @"------ binding null" );
+                        rc = sqlite3_bind_null( updateStmt, bindCount );
+                        isCreate = TRUE;
+                    } else {
+                        rc = sqlite3_bind_int(updateStmt, bindCount, value);
+                    }
                     [db checkError: rc message: @"Binding int"];
+                } 
                     break;
                 case _LITE3_DOUBLE:
                     rc = sqlite3_bind_double(updateStmt, bindCount, [toBind floatValue]);
@@ -386,6 +407,10 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     if ( lastId == 0 ) {
         ALog( @"No value inserted" );
     }
+    if ( isCreate ) {
+        [self setProperty:@"id" inObject: data toInt: (int)lastId];
+    }
+    
     [db checkError: rc message: @"Getting last insert row"];
     rc = sqlite3_reset(updateStmt);
     [db checkError: rc message: @"Resetting statement" ];
@@ -443,6 +468,12 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     
 }
 
+-(void) setProperty:(NSString *) name inObject: (id) object toInt:(int) value  {
+    Lite3Arg * pa = [Lite3Arg findByName:name inArray: arguments]; 
+    void ** varIndex = (void **)((char *)object + ivar_getOffset(pa.ivar));
+    *(long*)varIndex = value;
+}
+
 -(void) setProperty:(NSString *) name inObject: (id) object toValue: (const char *) value  {
     Lite3Arg * pa = [Lite3Arg findByName:name inArray: arguments];
     if ( pa == nil ) {
@@ -459,8 +490,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     }
     switch ( pa.preparedType ) {
         case _LITE3_INT: {
-            long extracted = atol( value );
-            
+            long extracted = atol( value );            
             *(long*)varIndex = extracted;
         }
             break;
