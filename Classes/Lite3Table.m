@@ -370,7 +370,6 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
                     // "id" INTEGER PRIMARY KEY NOT NULL AUTOINCREMENT
                     int value = [toBind intValue];
                     if ( [pa.name isEqualToString: @"id"]  && value == 0 ) {
-                        NSLog( @"------ binding null" );
                         rc = sqlite3_bind_null( updateStmt, bindCount );
                         isCreate = TRUE;
                     } else {
