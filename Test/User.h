@@ -31,9 +31,11 @@
 @interface User : NSObject {
     int _id;
     NSString * name;
+    NSDate * updated_at;
 }
 
 @property (nonatomic) int _id;
 @property (nonatomic,retain) NSString* name;
+@property (nonatomic,retain) NSDate * updated_at;
 
 @end

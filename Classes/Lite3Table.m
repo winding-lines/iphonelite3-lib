@@ -344,7 +344,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
                     pa.preparedType = _LITE3_LINK;
                     pa.link = linkTable;
                 } else {
-                    ALog( @"Need to decode %s", attributes );
+                    ALog( @"Need to decode %s in class %@", attributes, clsName );
                 }
             }
             if( pa != nil ) {

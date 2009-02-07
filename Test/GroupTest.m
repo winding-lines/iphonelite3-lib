@@ -42,7 +42,8 @@
 static const char * ddl = 
 "create table \"users\" ("
 "\"id\" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
-"\"name\" varchar(255)"
+"\"name\" varchar(255),"
+"\"updated_at\" datetime"
 ");"
 "create table \"groups\" ("
 "\"id\" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
@@ -86,7 +87,7 @@ static const char * ddl =
 
 
 - (void)setUp {
-    db = [[Lite3DB alloc] initWithDbName: @"user_test" andSql:[NSString stringWithCString:ddl]];
+    db = [[Lite3DB alloc] initWithDbName: @"user_test_020709" andSql:[NSString stringWithCString:ddl]];
     usersTable = [[Lite3Table lite3TableName: @"users" withDb: db forClassName:@"User"] retain];
     groupsTable = [[Lite3Table lite3TableName: @"groups" withDb: db forClassName:@"Group"] retain];
     // need to traverse all the tables and fix the references 
@@ -224,8 +225,15 @@ static const char * ddl =
     User * user = [[User alloc] init];
     user._id = 0; // this signifies new item
     user.name = @"name1";
+    user.updated_at = [NSDate date];
     [usersTable update: user];
     STAssertGreaterThan( user._id, 0, @"Wrong id after creating new user %d", user._id );
+    
+    //User * user1 = [usersTable selectFirstOrderBy:nil withFormat: @"id=", user._id];
+    User * user1 = [usersTable selectFirst: @"id=%d", user._id];
+    STAssertNotNil( user1, @"Could not fetch user just saved %d", user._id );
+    STAssertEquals( user1._id, user._id, @"IDs differ after fetching %d %d", user1._id, user._id );
+    STAssertNotNil( user1.updated_at, @"updated_at is nil after fetching %@", user1.updated_at );
 }
 
 - (void)tearDown {

@@ -29,6 +29,7 @@
 
 @synthesize _id;
 @synthesize name;
+@synthesize updated_at;
 
 
 @end
