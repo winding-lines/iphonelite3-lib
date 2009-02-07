@@ -35,7 +35,7 @@
 
 - (int)updateOwnTable:(id)data;
 
-- (NSMutableArray*)selectOwn:(NSString *)whereClause start: (int)start count:(int)count withAggregate:(NSString*)aggregate;
+- (NSMutableArray*)selectOwn:(NSString *)whereClause start: (int)start count:(int)count withAggregate:(NSString*)aggregate orderBy:(NSString*)orderBy;
 
 - (void)truncateOwn;
 
@@ -188,7 +188,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
 }
 
 - (int) count: (NSString*)whereClause {
-    NSArray * result = [self selectOwn:whereClause start: -1 count: -1 withAggregate: @"count" ];
+    NSArray * result = [self selectOwn:whereClause start: -1 count: -1 withAggregate: @"count" orderBy: nil ];
     NSMutableDictionary * dict = (NSMutableDictionary*)[result objectAtIndex:0];
     return [[dict objectForKey:@"count(*)"] intValue];
 }
@@ -210,8 +210,8 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     return [objects count];
 }
 
-- (NSMutableArray*)select:(NSString *)whereClause start: (int)start count:(int)count {
-    NSMutableArray * rows = [self selectOwn: whereClause start: start count: count withAggregate:nil];
+- (NSMutableArray*)select:(NSString *)whereClause start: (int)start count:(int)count orderBy: (NSString*)orderBy {
+    NSMutableArray * rows = [self selectOwn: whereClause start: start count: count withAggregate:nil orderBy: orderBy];
     return rows;
 }
 
@@ -239,7 +239,23 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
 
 
 - (NSMutableArray*)select:(NSString*)whereClause {
-    return [self select: whereClause start: -1 count: -1 ];
+    return [self select: whereClause start: -1 count: -1 orderBy:nil ];
+}
+
+- (id)selectFirstOrderBy:(NSString*) orderBy withFormat: (NSString*)whereFormat, ... {
+    NSString * whereClause = nil;
+    if ( whereFormat != nil ) {
+        va_list argumentList;
+        va_start( argumentList, whereFormat );
+        whereClause = [[[NSString alloc] initWithFormat:whereFormat arguments:argumentList] autorelease];
+        va_end( argumentList );
+    }
+    NSArray * matches = [self select: whereClause start: -1 count: 1 orderBy: orderBy];
+    if ( matches == nil || [matches count] == 0 ) {
+        return nil;
+    }
+    return [matches objectAtIndex: 0];
+    
 }
 
 
@@ -251,7 +267,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
         whereClause = [[[NSString alloc] initWithFormat:whereFormat arguments:argumentList] autorelease];
         va_end( argumentList );
     }
-    NSArray * matches = [self select: whereClause start: -1 count: 1];
+    NSArray * matches = [self select: whereClause start: -1 count: 1 orderBy: nil];
     if ( matches == nil || [matches count] == 0 ) {
         return nil;
     }
@@ -419,7 +435,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
 /**
  * Do a select in our own table (as opposed to the link tables).
  */
-- (NSMutableArray*)selectOwn:(NSString *)whereClause start: (int)start count:(int)count withAggregate:(NSString*)aggregate {
+- (NSMutableArray*)selectOwn:(NSString *)whereClause start: (int)start count:(int)count withAggregate:(NSString*)aggregate orderBy:(NSString*) orderBy {
     struct _SqlOutputHelper outputHelper;
     outputHelper.output = [NSMutableArray array];
     if ( aggregate == nil ) {
@@ -432,6 +448,9 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     char *zErrMsg = NULL;
     NSString * sql;
     NSMutableString * limit = [[NSMutableString alloc] init];
+    if ( orderBy != nil && [orderBy length] > 0 ) {
+        [limit appendFormat : @" order by %@", orderBy];
+    }
     if ( count > -1 ) {
         [limit appendFormat: @" limit %d", count ];
     }
@@ -448,6 +467,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
         sql = [NSString stringWithFormat: @"select %@ from %@ where %@%@", selectExpr, tableName, whereClause, limit];
     }
     [limit release];
+    //ALog( @"SQL SQL SQL %@", sql );
     int rc = sqlite3_exec(db.dbHandle, [sql UTF8String], multipleRowCallback, (void*)&outputHelper, &zErrMsg);
     if ( zErrMsg != NULL ) {
         sqlite3_free(zErrMsg);

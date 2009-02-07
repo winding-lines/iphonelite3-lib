@@ -118,12 +118,14 @@ OTHER DEALINGS IN THE SOFTWARE.
 /**
  * Select with limits.
  */
-- (NSMutableArray*)select:(NSString *)whereClause start: (int)start count:(int)count;
+- (NSMutableArray*)select:(NSString *)whereClause start: (int)start count:(int)count orderBy:(NSString*)orderBy;
 
 /**
  * Select the first item that matches or nil.
  */
 - (id)selectFirst:(NSString*)whereFormat, ...;
+
+- (id)selectFirstOrderBy:(NSString*) orderBy withFormat: (NSString*)whereFormat, ...;
 
 /**
  * Retrieves the second side of a many-to-many relationship.

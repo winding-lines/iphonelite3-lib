@@ -175,6 +175,12 @@ static const char * ddl =
     STAssertEquals( user._id, 1, @"Fetched wrong user %@", user );
     user = (User*)[usersTable selectFirst: @"id = 100"];
     STAssertNil( user, @"User should have been nil not %@", user);
+    user = [usersTable selectFirstOrderBy: @"id desc" withFormat: nil];
+    STAssertNotNil( user, @"Cannot fetch user with firstOrderBy" );
+    STAssertEquals ( user._id, 3, @"Fetch bad user id with firstOrderBy %d", user._id );
+    user = [usersTable selectFirstOrderBy: @"id desc" withFormat: @"id=%d", 2];
+    STAssertNotNil( user, @"Cannot fetch user with firstOrderBy" );
+    STAssertEquals ( user._id, 2, @"Fetch bad user id with firstOrderBy %d", user._id );
 }
 
 - (void) testAccessManyToMany {    
