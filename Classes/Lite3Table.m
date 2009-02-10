@@ -215,6 +215,40 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     return rows;
 }
 
+-(NSMutableArray*)loadProperty: (NSString*)propertyName forOwner:(id)owner withCache:(NSMutableArray*)cache {
+    Lite3Arg * arg = [Lite3Arg findByName: propertyName inArray: arguments];
+    NSMutableArray * links = [arg.link selectLinksFor:classNameLowerCase andId: [[owner valueForKey: @"_id"] intValue]];
+    //ALog( @"---- main %@ ---- id %d ------ links %@", main, [[main valueForKey: @"_id"] intValue], links );
+    if ( links == nil ) {
+        return nil;
+    }
+    NSMutableArray * output = [NSMutableArray array];
+    NSString * secondaryIdName = [NSString stringWithFormat: @"%@_id", arg.link.secondaryTable->classNameLowerCase];
+    for( id linkEntry in links ) {
+        int linkId = [[linkEntry valueForKey:secondaryIdName ] intValue];
+        BOOL existing = FALSE;
+        if ( cache != nil ) {
+            for ( id one in cache ) {
+                if ( [[one valueForKey:@"_id" ] intValue] ==  linkId ) {
+                    [output addObject: one];
+                    existing = TRUE;
+                    break;
+                }
+            }
+        }
+        if ( !existing ) {
+            id one = [arg.link.secondaryTable selectFirst: @"id=%d", linkId];
+            if ( one != nil ) {
+                [output addObject: one];
+            }
+            if ( cache != nil ) {
+                [cache addObject: one];
+            }
+        }
+    }
+    return output;
+}
+
 - (NSMutableArray*)filterArray: (NSArray*)pool forOwner:(id)owner andProperty: (NSString*)name {
     Lite3Arg * arg = [Lite3Arg findByName: name inArray: arguments];
     NSMutableArray * links = [arg.link selectLinksFor:classNameLowerCase andId: [[owner valueForKey: @"_id"] intValue]];

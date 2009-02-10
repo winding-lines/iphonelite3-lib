@@ -135,6 +135,13 @@ OTHER DEALINGS IN THE SOFTWARE.
 - (NSMutableArray*)filterArray: (NSArray*)pool forOwner:(id)owner andProperty: (NSString*)name;
 
 /**
+ * Load the second side of a many-to-many relationship.
+ * If a cache is passed in the object is looked up there.
+ * If an object is loaded and a cache is present then the object is pushed in the cache.
+ */
+-(NSMutableArray*)loadProperty: (NSString*)propertyName forOwner:(id)owner withCache:(NSMutableArray*)array;
+
+/**
  * Count the many-to-many associations in the database without fetching the data.
  * Returns the count for one primary object.
  */

@@ -198,6 +198,7 @@ static const char * ddl =
     group = (Group*)[groupsTable selectFirst: @"id = 1"];
     STAssertNotNil( group, @"Cannot fetch group", nil );
     STAssertEquals( group._id, 1 , @"Fetched wrong group %@", group );
+    
     NSArray * usersForGroup = [groupsTable filterArray: users forOwner: group andProperty: @"users"];
     STAssertNotNil( usersForGroup, @"Group has null users", nil );
     STAssertEquals ( (int)[usersForGroup count], 3, @"%d is the wrong number of users", (int)[usersForGroup count] );
@@ -208,6 +209,11 @@ static const char * ddl =
     STAssertNotNil( secondUser, @"Second user is empty", nil );
     STAssertGreaterThan( secondUser._id, 0, @"Second user has no id", nil );
     STAssertFalse( firstUser._id == secondUser._id, @"First and second user id identical %d", firstUser._id );
+    
+    usersForGroup = [groupsTable loadProperty: @"users" forOwner:group withCache:nil];
+    STAssertNotNil( usersForGroup, @"Group (loadProperty) has null users", nil );
+    STAssertEquals ( (int)[usersForGroup count], 3, @"%d is the wrong number of users", (int)[usersForGroup count] );
+    
     
 }
 
