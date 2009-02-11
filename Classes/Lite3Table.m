@@ -121,7 +121,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
 }
 
 - (BOOL)isValid {
-    return arguments!=nil;
+    return arguments!=nil && updateStmt != NULL;
 }
 
 - (BOOL)compileStatements {
