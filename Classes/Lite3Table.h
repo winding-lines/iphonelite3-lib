@@ -48,6 +48,8 @@ OTHER DEALINGS IN THE SOFTWARE.
     NSString * classNameLowerCase;
     // custom representation of the SQL arguments for faster processing
     NSArray * arguments;
+    // for parsing the dates
+    NSDateFormatter* dateFormatter;
 }
 
 @property(nonatomic,retain) NSString * tableName;

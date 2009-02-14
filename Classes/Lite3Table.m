@@ -85,10 +85,13 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     db = dp;
     updateStmt = NULL;
     countStmt = NULL;
+    dateFormatter = [[NSDateFormatter alloc] init];
+    [dateFormatter setDateFormat:@"yyyy-MM-dd HH:mm:ss Z"];
     return self;
 }
 
 - (void)dealloc {
+    [dateFormatter release];
     [tableName release]; 
     [arguments release];
     [className release];
@@ -206,7 +209,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     }
     [db endTransaction];
     NSTimeInterval elapsed = [start timeIntervalSinceNow];
-    ALog(@"updateAll %@ duration %f", tableName, -elapsed);    
+    DLog(@"updateAll %@ duration %f", tableName, -elapsed);
     return [objects count];
 }
 
@@ -557,7 +560,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
             object_setInstanceVariable( object, [name UTF8String], extracted );
         } break;
         case _LITE3_TIMESTAMP: {
-            NSString * extracted = [[NSString stringWithCString:value encoding:NSUTF8StringEncoding] retain];
+            NSDate * extracted = [[dateFormatter dateFromString:[NSString stringWithCString:value encoding:NSUTF8StringEncoding]] retain];
             object_setInstanceVariable( object, [name UTF8String], extracted );
         } break;
     }
