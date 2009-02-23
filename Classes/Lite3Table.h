@@ -118,6 +118,15 @@ OTHER DEALINGS IN THE SOFTWARE.
 - (int) count: (NSString*)whereClause;
 
 /**
+ * Count of objects that match the whereClause and group by the optional properties.
+ * Returns an array where each element is an dictionary with the following elements:
+ * - count
+ * - <property1>
+ * - <property2>
+ */
+- (NSArray*) count: (NSString*)whereClause groupBy:(NSString*) property1, ...;
+
+/**
  * Select with limits.
  */
 - (NSMutableArray*)select:(NSString *)whereClause start: (int)start count:(int)count orderBy:(NSString*)orderBy;

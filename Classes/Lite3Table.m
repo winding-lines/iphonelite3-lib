@@ -37,6 +37,8 @@
 
 - (NSMutableArray*)selectOwn:(NSString *)whereClause start: (int)start count:(int)count withAggregate:(NSString*)aggregate orderBy:(NSString*)orderBy;
 
+- (NSMutableArray*)selectOwn:(NSString *)whereClause expr:(NSString*)expr groupBy:(NSString*)groupBy;
+
 - (void)truncateOwn;
 
 -(void) setProperty:(NSString *) name inObject: (id) object toInt:(int) value;
@@ -194,6 +196,28 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     NSArray * result = [self selectOwn:whereClause start: -1 count: -1 withAggregate: @"count" orderBy: nil ];
     NSMutableDictionary * dict = (NSMutableDictionary*)[result objectAtIndex:0];
     return [[dict objectForKey:@"count(*)"] intValue];
+}
+
+- (NSArray*) count: (NSString*)whereClause groupBy:(NSString*) property1, ... {
+    if ( property1 != nil ) {
+        va_list propertyList;
+        va_start( propertyList, property1 );
+        NSMutableString * groupByClause = [[NSMutableString alloc] initWithFormat: @" group by %@", property1] ; 
+        NSMutableString * columns = [[NSMutableString alloc] initWithFormat: @"count(*) as count, %@", property1];
+        NSString * property;
+        while (property = va_arg(propertyList, id)) {
+            [columns appendFormat: @", %@", property];
+            [groupByClause appendFormat:@", %@", property];
+            
+        }
+        va_end( propertyList );
+        NSArray * ret = [self selectOwn:whereClause expr:columns groupBy:groupByClause];
+        [groupByClause release];
+        [columns release];
+        return ret;
+    }
+    return nil;
+    
 }
 
 - (int)updateAll:(NSArray*)objects {
@@ -504,6 +528,27 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
         sql = [NSString stringWithFormat: @"select %@ from %@ where %@%@", selectExpr, tableName, whereClause, limit];
     }
     [limit release];
+    //ALog( @"SQL SQL SQL %@", sql );
+    int rc = sqlite3_exec(db.dbHandle, [sql UTF8String], multipleRowCallback, (void*)&outputHelper, &zErrMsg);
+    if ( zErrMsg != NULL ) {
+        sqlite3_free(zErrMsg);
+    }
+    [db checkError: rc message: @"Executing select statement"];
+    return outputHelper.output;
+}
+
+- (NSMutableArray*)selectOwn:(NSString *)whereClause expr:(NSString*)expr groupBy:(NSString*)groupBy {
+    struct _SqlOutputHelper outputHelper;
+    outputHelper.output = [NSMutableArray array];
+    outputHelper.cls = NULL;
+    outputHelper.preparedTable = self;
+    char *zErrMsg = NULL;
+    NSString * sql;
+    if ( whereClause == nil ) {
+        sql = [NSString stringWithFormat: @"select %@ from %@%@", expr, tableName, groupBy];
+    } else {
+        sql = [NSString stringWithFormat: @"select %@ from %@ where %@%@", expr, tableName, whereClause, groupBy];
+    }
     //ALog( @"SQL SQL SQL %@", sql );
     int rc = sqlite3_exec(db.dbHandle, [sql UTF8String], multipleRowCallback, (void*)&outputHelper, &zErrMsg);
     if ( zErrMsg != NULL ) {
