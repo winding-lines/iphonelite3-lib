@@ -327,7 +327,6 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
  */
 -(NSArray*)selectWithPredicate:(id<Lite3Predicate>) predicate sortBy:(NSString*)optionalSort withFormat: (NSString*)whereFormat, ... {
     NSString * whereClause = nil;
-    DLog(@"Entering select with predicate");
     if ( whereFormat != nil ) {
         va_list argumentList;
         va_start( argumentList, whereFormat );
@@ -346,7 +345,6 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     
     sqlite3_stmt * stmt = NULL;
     NSMutableArray * ret = nil;
-    DLog( @"Statement %@", sql );
     if ( [db compileStatement: &stmt sql: sql] )  {
         ret = [[[NSMutableArray alloc] init] autorelease];
         Class cls = objc_getClass([className cStringUsingEncoding: NSASCIIStringEncoding]);        
@@ -379,7 +377,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
                 
         }
     } else {
-        ALog( @"Compiling statement failed.");
+        ALog( @"Failed compiling %@.", sql);
     }
     
     if ( stmt != NULL ) {
@@ -388,7 +386,6 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     
     [whereClause release];
     [sql release];
-    DLog(@"---exiting selectWithPredicate %@", ret );
     return ret;
 }
 
