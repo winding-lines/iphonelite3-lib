@@ -30,6 +30,7 @@
 
 #import "User.h"
 #import "Group.h"
+#import "PredicateTest.h"
 
 @interface GroupTest : SenTestCase {
     Lite3DB * db;
@@ -240,6 +241,58 @@ static const char * ddl =
     STAssertNotNil( user1, @"Could not fetch user just saved %d", user._id );
     STAssertEquals( user1._id, user._id, @"IDs differ after fetching %d %d", user1._id, user._id );
     STAssertNotNil( user1.updated_at, @"updated_at is nil after fetching %@", user1.updated_at );
+}
+
+-(void) testPredicateEmptyTable {
+   [usersTable truncate];
+   PredicateTest * predicate = [[[PredicateTest alloc] init] autorelease];
+   NSArray *selected  = [usersTable selectWithPredicate:predicate sortBy:nil withFormat: nil];
+   STAssertNotNil(selected, @"Nil return from selectWithPredicate");
+   STAssertEquals( (int)[selected count], 0, @"Wrong number of elements in selected array %d", [selected count]);
+   
+}
+
+-(void) testPredicateWithData1{
+    [usersTable truncate];
+    [usersTable updateAll: [self buildImportUsers]];
+    PredicateTest * predicate = [[[PredicateTest alloc] init] autorelease];
+    NSArray *selected  = [usersTable selectWithPredicate:predicate sortBy:nil withFormat: nil];
+    STAssertNotNil(selected, @"Nil return from selectWithPredicate");
+    STAssertEquals( (int)[selected count], 1, @"Wrong number of elements in selected array %d", [selected count]);
+    User * u = [selected objectAtIndex:0 ];
+    STAssertEquals( 3, u._id, @"Wrong user id %d", u._id );
+}
+
+-(void) testPredicateWithData2{
+    [usersTable truncate];
+    [usersTable updateAll: [self buildImportUsers]];
+    PredicateTest * predicate = [[[PredicateTest alloc] init] autorelease];
+    NSArray *selected  = [usersTable selectWithPredicate:predicate sortBy:nil withFormat: @"id=%d", 3 ];
+    STAssertNotNil(selected, @"Nil return from selectWithPredicate");
+    STAssertEquals( (int)[selected count], 1, @"Wrong number of elements in selected array %d", [selected count]);
+    User * u = [selected objectAtIndex:0 ];
+    STAssertEquals( 3, u._id, @"Wrong user id %d", u._id );
+}
+
+-(void) testPredicateWithData3{
+    [usersTable truncate];
+    [usersTable updateAll: [self buildImportUsers]];
+    PredicateTest * predicate = [[[PredicateTest alloc] init] autorelease];
+    NSArray *selected  = [usersTable selectWithPredicate:predicate sortBy: @"name desc" withFormat: @"id=%d", 3 ];
+    STAssertNotNil(selected, @"Nil return from selectWithPredicate");
+    STAssertEquals( (int)[selected count], 1, @"Wrong number of elements in selected array %d", [selected count]);
+    User * u = [selected objectAtIndex:0 ];
+    STAssertEquals( 3, u._id, @"Wrong user id %d", u._id );
+}
+
+-(void) testPredicateWithData4{
+    [usersTable truncate];
+    [usersTable updateAll: [self buildImportUsers]];
+    PredicateTest * predicate = [[[PredicateTest alloc] init] autorelease];
+    NSArray *selected  = [usersTable selectWithPredicate:predicate sortBy: @"name desc" withFormat: @"id=%d", 2 ];
+    STAssertNotNil(selected, @"Nil return from selectWithPredicate");
+    // we do not expect any return because predicate and where clause are disjunct
+    STAssertEquals( (int)[selected count], 0, @"Wrong number of elements in selected array %d", [selected count]);
 }
 
 - (void)tearDown {

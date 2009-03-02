@@ -263,6 +263,11 @@ int listTablesCallback(void *helperP, int columnCount, char **values, char **col
     return [self checkError: rc message: @"Creating count statement"];
 }
 
+-(BOOL)compileStatement:(sqlite3_stmt**)stmt_p sql:(NSString*)query {
+    int rc = sqlite3_prepare_v2( dbHandle, [query UTF8String], -1, stmt_p, NULL);
+    return [self checkError: rc message: @"Compiling arbitrary statement"];
+}
+
 
 - (void)dealloc {
     [tableDictionary release];

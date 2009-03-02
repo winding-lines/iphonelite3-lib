@@ -70,6 +70,9 @@
  */
 - (BOOL)endTransaction;
 
+- (BOOL)compileStatement:(sqlite3_stmt**)stmt_p sql:(NSString*)query;
+
+
 -(BOOL)compileUpdateStatement:(sqlite3_stmt**)stmt_p tableName: (NSString*)tableName arguments: (NSArray*)arguments;
 
 -(BOOL)compileCountStatement:(sqlite3_stmt**)stmt_p tableName: (NSString*)tableName;

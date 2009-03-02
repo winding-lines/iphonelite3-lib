@@ -25,6 +25,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #import <Foundation/Foundation.h>
 #import <sqlite3.h>
+#import "Lite3Predicate.h"
 @class Lite3DB;
 @class Lite3LinkTable;
 
@@ -139,6 +140,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 - (id)selectFirstOrderBy:(NSString*) orderBy withFormat: (NSString*)whereFormat, ...;
 
 /**
+ * Select with a predicate.
+ */
+-(NSArray*)selectWithPredicate:(id<Lite3Predicate>) predicate sortBy:(NSString*)optionalSort withFormat: (NSString*)whereFormat, ...;
+
+/**
  * Retrieves the second side of a many-to-many relationship.
  * In this release you have to pass a pool of objects to select from, the pool will contain the other side of the relationship.
  * The library may decide to track this information in a session/cache but for now the responsibility is on the user of the library.
@@ -169,4 +175,5 @@ OTHER DEALINGS IN THE SOFTWARE.
  * Delete all the objects in the database.
  */
 - (void)truncate;
+
 @end

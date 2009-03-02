@@ -43,6 +43,8 @@
 
 -(void) setProperty:(NSString *) name inObject: (id) object toInt:(int) value;
 
+-(void) setProperty:(NSString *) name inObject: (id) object toValue: (const char *) value;
+
 @end
 
 /**
@@ -317,6 +319,77 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     }
     return [matches objectAtIndex: 0];
     
+}
+
+/**
+ * Allow the user to use a predicate during the search to avoid over-allocating memory.
+ * This implementation moves away from using a callback.
+ */
+-(NSArray*)selectWithPredicate:(id<Lite3Predicate>) predicate sortBy:(NSString*)optionalSort withFormat: (NSString*)whereFormat, ... {
+    NSString * whereClause = nil;
+    DLog(@"Entering select with predicate");
+    if ( whereFormat != nil ) {
+        va_list argumentList;
+        va_start( argumentList, whereFormat );
+        whereClause = [[NSString alloc] initWithFormat:whereFormat arguments:argumentList];
+        va_end( argumentList );
+    }
+    NSMutableString * sql = [[NSMutableString alloc] initWithFormat:  @"select * from %@", tableName ];
+    if ( whereClause != nil ) {
+        [sql appendString: @" where " ];
+        [sql appendString: whereClause ];
+    }
+    if ( optionalSort != nil ) {
+        [sql appendString: @" order by "];
+        [sql appendString: optionalSort ];
+    }
+    
+    sqlite3_stmt * stmt = NULL;
+    NSMutableArray * ret = nil;
+    DLog( @"Statement %@", sql );
+    if ( [db compileStatement: &stmt sql: sql] )  {
+        ret = [[[NSMutableArray alloc] init] autorelease];
+        Class cls = objc_getClass([className cStringUsingEncoding: NSASCIIStringEncoding]);        
+        while( true ) {
+            int rc = sqlite3_step(stmt);
+            if ( ![db checkError: rc message: @"Cannot step in the stmt for selectWithPredicate"] ) {
+                DLog( @"----Error" );
+                break;
+            }
+            if ( rc != SQLITE_ROW ) {
+                DLog( @"Exiting with rc %d", rc );
+                break;
+            }
+            id object  = class_createInstance(cls, 0 );
+            int count = sqlite3_column_count(stmt);
+            for( int i=0;i<count;i++) {
+                const char * name = sqlite3_column_name(stmt,i);
+                NSString * nameAsString = [[NSString alloc] initWithCString: name];
+                const char * value = (const char *)sqlite3_column_text(stmt,i);
+                [self setProperty: nameAsString inObject: object toValue: value ];
+                [nameAsString release];
+            }
+            if ( [predicate matches: object data: ret] ) {
+                [ret addObject: object];
+            }
+            [object release];
+            if ( [predicate shouldBreak]) {
+                break;
+            }
+                
+        }
+    } else {
+        ALog( @"Compiling statement failed.");
+    }
+    
+    if ( stmt != NULL ) {
+        sqlite3_finalize(stmt);
+    }
+    
+    [whereClause release];
+    [sql release];
+    DLog(@"---exiting selectWithPredicate %@", ret );
+    return ret;
 }
 
 
@@ -605,8 +678,10 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
             object_setInstanceVariable( object, [name UTF8String], extracted );
         } break;
         case _LITE3_TIMESTAMP: {
-            NSDate * extracted = [[dateFormatter dateFromString:[NSString stringWithCString:value encoding:NSUTF8StringEncoding]] retain];
-            object_setInstanceVariable( object, [name UTF8String], extracted );
+            if ( value != nil ) {
+                NSDate * extracted = [[dateFormatter dateFromString:[NSString stringWithCString:value encoding:NSUTF8StringEncoding]] retain];
+                object_setInstanceVariable( object, [name UTF8String], extracted );
+            }
         } break;
     }
 }
