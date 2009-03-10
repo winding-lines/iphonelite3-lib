@@ -1,6 +1,6 @@
 /*
  Copyright (c) 2009 copyright@de-co-de.com
- 
+
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
  files (the "Software"), to deal in the Software without
@@ -9,10 +9,10 @@
  copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following
  conditions:
- 
+
  The above copyright notice and this permission notice shall be
  included in all copies or substantial portions of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -21,7 +21,7 @@
  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
- */  
+ */
 
 #import "Lite3Arg.h"
 #import "Lite3Table.h"
@@ -77,7 +77,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     [className retain];
     [classNameLowerCase release];
     classNameLowerCase = [[className lowercaseString] retain];
-    [db addLite3Table: self];    
+    [db addLite3Table: self];
     [self mapToClass: _className];
 }
 
@@ -96,11 +96,11 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
 
 - (void)dealloc {
     [dateFormatter release];
-    [tableName release]; 
+    [tableName release];
     [arguments release];
     [className release];
     [classNameLowerCase release];
-    if ( 
+    if (
         updateStmt != NULL ) {
         sqlite3_finalize(updateStmt);
     }
@@ -111,11 +111,11 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
 }
 
 + (Lite3Table*)lite3TableName:(NSString*)name withDb:(Lite3DB*)_db {
-    
+
     Lite3Table * pt = [[[Lite3Table alloc] initWithDB: _db ] autorelease];
-    pt.tableName = name;    
+    pt.tableName = name;
     return pt;
-    
+
 }
 
 + (Lite3Table*)lite3TableName:(NSString*)name withDb:(Lite3DB*)_db forClassName:(NSString*)_clsName {
@@ -152,7 +152,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
 #pragma mark "--- Lite3Table database functions ---"
 -(BOOL)tableExists {
     NSArray * existing = [db listTables];
-    
+
     for( NSString * one in existing ) {
         if ( [one compare: tableName] == NSOrderedSame ) {
             return TRUE;
@@ -191,7 +191,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     rc = sqlite3_reset(countStmt);
     [db checkError: rc message: @"Resetting count statement"];
     return count;
-    
+
 }
 
 - (int) count: (NSString*)whereClause {
@@ -204,13 +204,13 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     if ( property1 != nil ) {
         va_list propertyList;
         va_start( propertyList, property1 );
-        NSMutableString * groupByClause = [[NSMutableString alloc] initWithFormat: @" group by %@", property1] ; 
+        NSMutableString * groupByClause = [[NSMutableString alloc] initWithFormat: @" group by %@", property1] ;
         NSMutableString * columns = [[NSMutableString alloc] initWithFormat: @"count(*) as count, %@", property1];
         NSString * property;
         while (property = va_arg(propertyList, id)) {
             [columns appendFormat: @", %@", property];
             [groupByClause appendFormat:@", %@", property];
-            
+
         }
         va_end( propertyList );
         NSArray * ret = [self selectOwn:whereClause expr:columns groupBy:groupByClause];
@@ -219,7 +219,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
         return ret;
     }
     return nil;
-    
+
 }
 
 - (int)updateAll:(NSArray*)objects {
@@ -297,7 +297,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
         }
     }
     return output;
-    
+
 }
 
 
@@ -318,7 +318,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
         return nil;
     }
     return [matches objectAtIndex: 0];
-    
+
 }
 
 /**
@@ -342,12 +342,12 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
         [sql appendString: @" order by "];
         [sql appendString: optionalSort ];
     }
-    
+
     sqlite3_stmt * stmt = NULL;
     NSMutableArray * ret = nil;
     if ( [db compileStatement: &stmt sql: sql] )  {
         ret = [[[NSMutableArray alloc] init] autorelease];
-        Class cls = objc_getClass([className cStringUsingEncoding: NSASCIIStringEncoding]);        
+        Class cls = objc_getClass([className cStringUsingEncoding: NSASCIIStringEncoding]);
         while( true ) {
             int rc = sqlite3_step(stmt);
             if ( ![db checkError: rc message: @"Cannot step in the stmt for selectWithPredicate"] ) {
@@ -374,16 +374,16 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
             if ( [predicate shouldBreak]) {
                 break;
             }
-                
+
         }
     } else {
         ALog( @"Failed compiling %@.", sql);
     }
-    
+
     if ( stmt != NULL ) {
         sqlite3_finalize(stmt);
     }
-    
+
     [whereClause release];
     [sql release];
     return ret;
@@ -403,7 +403,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
         return nil;
     }
     return [matches objectAtIndex: 0];
-    
+
 }
 
 -(void)truncate {
@@ -418,7 +418,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
 }
 
 - (int)countAssociations:(id)owner forProperty:(NSString*)name {
-    Lite3Arg * arg = [Lite3Arg findByName: name inArray: arguments];    
+    Lite3Arg * arg = [Lite3Arg findByName: name inArray: arguments];
     int linkCount = [arg.link countLinksFor:classNameLowerCase andId: [[owner valueForKey: @"_id"] intValue]];
     return linkCount;
 }
@@ -439,7 +439,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
         ALog( @"Cannot class '%s'", _c );
         return FALSE;
     }
-    objc_property_t * properties = NULL; 
+    objc_property_t * properties = NULL;
     unsigned int outCount;
     properties = class_copyPropertyList( cls, &outCount);
     if ( outCount != 0 ) {
@@ -452,8 +452,8 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
                 propertyName = propertyName+1;
             }
             pa.name = [[NSString alloc] initWithCString: propertyName encoding: NSASCIIStringEncoding];
-            
-            
+
+
             const char *attributes = property_getAttributes(properties[i]);
             if ( attributes != NULL ) {
                 if ( strncmp(attributes,"Ti",2) == 0 ) {
@@ -487,7 +487,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
         free( properties );
     }
     arguments = _arguments;
-    
+
     return TRUE;
 }
 
@@ -499,7 +499,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
         ALog( @"No update statement" );
         return -1;
     }
-    int rc = sqlite3_clear_bindings(updateStmt);    
+    int rc = sqlite3_clear_bindings(updateStmt);
     [db checkError: rc message: @"Clearing statement bindings"];
     int bindCount = 0;
     BOOL isCreate = FALSE; // track create operations to save the ID back in the object
@@ -513,7 +513,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
             switch (pa.preparedType) {
                 case _LITE3_INT: {
                     // check to see if this is an id of 0 and then set the stored proc to null
-                    // your database should be created with 
+                    // your database should be created with
                     // "id" INTEGER PRIMARY KEY NOT NULL AUTOINCREMENT
                     int value = [toBind intValue];
                     if ( [pa.name isEqualToString: @"id"]  && value == 0 ) {
@@ -523,7 +523,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
                         rc = sqlite3_bind_int(updateStmt, bindCount, value);
                     }
                     [db checkError: rc message: @"Binding int"];
-                } 
+                }
                     break;
                 case _LITE3_DOUBLE:
                     rc = sqlite3_bind_double(updateStmt, bindCount, [toBind floatValue]);
@@ -537,7 +537,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
                 }
                     break;
                 case _LITE3_TIMESTAMP: {
-                    const char * cString = [[toBind description] UTF8String];                    
+                    const char * cString = [[toBind description] UTF8String];
                     rc = sqlite3_bind_text(updateStmt, bindCount, cString, strlen(cString), NULL );
                     [db checkError: rc message: @"Binding timestamp"];
                 }
@@ -556,7 +556,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     if ( isCreate ) {
         [self setProperty:@"id" inObject: data toInt: (int)lastId];
     }
-    
+
     [db checkError: rc message: @"Getting last insert row"];
     rc = sqlite3_reset(updateStmt);
     [db checkError: rc message: @"Resetting statement" ];
@@ -636,11 +636,11 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
         sqlite3_free(zErrMsg);
     }
     [db checkError: rc message: @"Truncating table"];
-    
+
 }
 
 -(void) setProperty:(NSString *) name inObject: (id) object toInt:(int) value  {
-    Lite3Arg * pa = [Lite3Arg findByName:name inArray: arguments]; 
+    Lite3Arg * pa = [Lite3Arg findByName:name inArray: arguments];
     void ** varIndex = (void **)((char *)object + ivar_getOffset(pa.ivar));
     *(long*)varIndex = value;
 }
@@ -653,7 +653,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     if ( [name isEqualToString: @"id"]) {
         name = @"_id";
     }
-    
+
     void ** varIndex = (void **)((char *)object + ivar_getOffset(pa.ivar));
     if ( varIndex == NULL ) {
         ALog( @"----VAR INDEX IS NULL for %@ object %p", name, object );
@@ -661,18 +661,20 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     }
     switch ( pa.preparedType ) {
         case _LITE3_INT: {
-            long extracted = atol( value );            
+            long extracted = value == NULL? 0: atol( value );
             *(long*)varIndex = extracted;
         }
             break;
         case _LITE3_DOUBLE: {
-            double extracted = atof( value );
+            double extracted = value == NULL ? 0.0: atof( value );
             *(double*)varIndex = extracted;
-        } 
+        }
             break;
         case _LITE3_STRING: {
-            NSString * extracted = [[NSString stringWithCString:value encoding:NSUTF8StringEncoding] retain];
-            object_setInstanceVariable( object, [name UTF8String], extracted );
+            if ( value != NULL ) {
+                NSString * extracted = [[NSString stringWithCString:value encoding:NSUTF8StringEncoding] retain];
+                object_setInstanceVariable( object, [name UTF8String], extracted );
+            }
         } break;
         case _LITE3_TIMESTAMP: {
             if ( value != nil ) {
@@ -689,7 +691,7 @@ static int multipleRowCallback(void *helperP, int columnCount, char **values, ch
         return 0;
     }
     struct _SqlOutputHelper * helper = (struct _SqlOutputHelper*)helperP;
-    
+
     id object;
     if ( helper->cls != nil ) {
         object = class_createInstance(helper->cls, 0 );
@@ -698,7 +700,7 @@ static int multipleRowCallback(void *helperP, int columnCount, char **values, ch
     }
     int i;
     for(i=0; i<columnCount; i++) {
-        
+
         const char * name = columnNames[i];
         const char * value = values[i];
         if ( value == NULL ) {
@@ -711,7 +713,7 @@ static int multipleRowCallback(void *helperP, int columnCount, char **values, ch
         } else {
             [helper->preparedTable setProperty: nameAsString inObject: object toValue: value ];
         }
-        [nameAsString release];                
+        [nameAsString release];
     }
     [helper->output addObject: object];
     return 0;
