@@ -100,7 +100,7 @@ double toRad(double degrees) {
  * Compute (approximate) the distance between the two points.
  */
 double calculateDistance( double nLat1, double nLon1, double nLat2, double nLon2 ) {
-    double nRadius = 3958.7; // Earth radius miles
+    double nRadius = 3958.7; // Earth‚Äôs radius miles
     // Get the difference between our two points 
     // then convert the difference into radians
     double nDLat = toRad(nLat2 - nLat1);  

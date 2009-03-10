@@ -672,13 +672,13 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
             break;
         case _LITE3_STRING: {
             if ( value != NULL ) {
-                NSString * extracted = [NSString stringWithCString:value encoding:NSUTF8StringEncoding];
+                NSString * extracted = [[NSString stringWithCString:value encoding:NSUTF8StringEncoding] retain];
                 object_setInstanceVariable( object, [name UTF8String], extracted );
             }
         } break;
         case _LITE3_TIMESTAMP: {
             if ( value != nil ) {
-                NSDate * extracted = [dateFormatter dateFromString:[NSString stringWithCString:value encoding:NSUTF8StringEncoding]];
+                NSDate * extracted = [[dateFormatter dateFromString:[NSString stringWithCString:value encoding:NSUTF8StringEncoding]] retain];
                 object_setInstanceVariable( object, [name UTF8String], extracted );
             }
         } break;
@@ -709,7 +709,7 @@ static int multipleRowCallback(void *helperP, int columnCount, char **values, ch
         NSString * nameAsString = [[NSString alloc] initWithCString: name];
         if (helper->cls == nil ) {
             // we don't have an user class backing this table
-            [object setValue: [NSString stringWithCString: value] forKey: nameAsString];
+            [object setValue: [[NSString alloc] initWithCString: value] forKey: nameAsString];
         } else {
             [helper->preparedTable setProperty: nameAsString inObject: object toValue: value ];
         }
