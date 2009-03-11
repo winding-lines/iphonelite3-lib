@@ -226,10 +226,12 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     NSDate * start = [NSDate date];
     [db startTransaction: @"updateAll"];
     for ( int i=0; i < [objects count]; i++ ) {
-        NSDictionary * d = [objects objectAtIndex: i];
-        NSDictionary * embedded = [d valueForKey: classNameLowerCase];
-        if ( embedded != nil ) {
-            d = embedded;
+        id d = [objects objectAtIndex: i];
+        if ( [d isKindOfClass: [NSDictionary class]] ) {
+            NSDictionary * embedded = [d valueForKey: classNameLowerCase];
+            if ( embedded != nil ) {
+                d = embedded;
+            }
         }
         [self updateNoTransaction: d];
     }
