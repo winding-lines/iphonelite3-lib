@@ -451,7 +451,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
             if ( propertyName[0] == '_' ) {
                 propertyName = propertyName+1;
             }
-            pa.name = [[NSString alloc] initWithCString: propertyName encoding: NSASCIIStringEncoding];
+            pa.name = [NSString stringWithCString: propertyName encoding: NSASCIIStringEncoding];
 
 
             const char *attributes = property_getAttributes(properties[i]);
