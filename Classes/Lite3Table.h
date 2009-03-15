@@ -151,7 +151,14 @@ OTHER DEALINGS IN THE SOFTWARE.
 /**
  * Delete the records that match the given where format.
  */
--(void)delete:(NSString*)whereFormat,...;
+- (void)delete:(NSString*)whereFormat,...;
+
+/**
+ * Delete the records where the given property has the desired value.
+ * This is different from the delete: method because the where clause changes
+ * depending on the property type.
+ */
+- (void)deleteWhereProperty:(NSString*)propertyName hasValue:(id)value;
 
 - (id)selectFirstOrderBy:(NSString*) orderBy withFormat: (NSString*)whereFormat, ...;
 

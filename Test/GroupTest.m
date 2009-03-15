@@ -356,6 +356,17 @@ static const char * ddl =
     STAssertEquals( 3, [usersTable count], @"Wrong count of users after delete %d", [usersTable count] );
 }
 
+-(void) testUpdateAllExistingNonPrimaryKey {
+    [usersTable truncate];
+    [usersTable updateAll: [self buildImportUsers]];
+    User * u = [[[User alloc] init] autorelease];
+    u.name = @"user1";
+    [usersTable updateAll: [NSArray arrayWithObject: u ] withPrimaryKey: @"name"];
+    STAssertEquals( 3, [usersTable count], @"Count of users changed after update %d", [usersTable count] );
+    User * inserted = [usersTable selectFirst:@"name='name1"];
+    STAssertNotEquals( 1, (int)[inserted _id], @"User id is still 1, expected a new one to be created");
+}
+
 - (void)tearDown {
     [usersTable release];
     [groupsTable release];
