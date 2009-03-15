@@ -45,6 +45,7 @@
 
 -(void) setProperty:(NSString *) name inObject: (id) object toValue: (const char *) value;
 
+-(void)simpleExec: (NSString*)stmt;
 @end
 
 /**
@@ -391,6 +392,19 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     return ret;
 }
 
+- (void)delete:(NSString*)whereFormat, ... {
+    NSString * whereClause = nil;
+    if ( whereFormat != nil ) {
+        va_list argumentList;
+        va_start( argumentList, whereFormat );
+        whereClause = [[[NSString alloc] initWithFormat:whereFormat arguments:argumentList] autorelease];
+        va_end( argumentList );
+    }
+    NSString * deleteStatement = [[NSString alloc] initWithFormat: @"delete from %@ where %@", tableName, whereClause];
+    [self simpleExec: deleteStatement];
+    [deleteStatement release];
+}
+
 
 - (id)selectFirst:(NSString*)whereFormat, ... {
     NSString * whereClause = nil;
@@ -491,6 +505,24 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
     arguments = _arguments;
 
     return TRUE;
+}
+
+/**
+ * Execute a statement that does not generate any output.
+ */
+-(void)simpleExec: (NSString*)sql {
+    sqlite3_stmt *compiled;
+    if ( ![db compileStatement: &compiled sql: sql] ) {
+        DLog(@"Compiling statement fails");
+        return;
+    }
+    if ( compiled != NULL ) {
+        int rc = sqlite3_step(compiled);
+        [db checkError: rc message: @"Stepping simple statement"];
+    } else {
+        DLog( @"Could not compile statement");
+    }
+    sqlite3_finalize(compiled);
 }
 
 /**

@@ -137,6 +137,11 @@ OTHER DEALINGS IN THE SOFTWARE.
  */
 - (id)selectFirst:(NSString*)whereFormat, ...;
 
+/**
+ * Delete the records that match the given where format.
+ */
+-(void)delete:(NSString*)whereFormat,...;
+
 - (id)selectFirstOrderBy:(NSString*) orderBy withFormat: (NSString*)whereFormat, ...;
 
 /**
