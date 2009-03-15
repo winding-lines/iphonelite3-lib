@@ -758,7 +758,7 @@ static int multipleRowCallback(void *helperP, int columnCount, char **values, ch
         NSString * nameAsString = [[NSString alloc] initWithCString: name];
         if (helper->cls == nil ) {
             // we don't have an user class backing this table
-            [object setValue: [[NSString alloc] initWithCString: value] forKey: nameAsString];
+            [object setValue: [NSString stringWithCString: value] forKey: nameAsString];
         } else {
             [helper->preparedTable setProperty: nameAsString inObject: object toValue: value ];
         }
