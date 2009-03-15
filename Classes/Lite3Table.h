@@ -108,6 +108,17 @@ OTHER DEALINGS IN THE SOFTWARE.
 - (int)updateAll:(NSArray*)objects;
 
 /**
+ * Update the table from all the elements in the array using a primary key that does not have an
+ * index on it.
+ * Allow some flexibility in the data to be able to import Ruby JSON (with or without an extra class wrapper)
+ *   [
+ *     { "class_name" : { id: 0, ...} },
+ *     { "class_name" : { "id": 1, ...} }
+ *   ]
+ */
+- (int)updateAll:(NSArray*)objects withPrimaryKey:(NSString*)key;
+
+/**
  * Return a list of objects that match the optional selectClause.
  */
 - (NSMutableArray*) select: (NSString*)selectClause;

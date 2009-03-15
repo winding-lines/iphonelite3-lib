@@ -224,8 +224,16 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
 }
 
 - (int)updateAll:(NSArray*)objects {
-    NSDate * start = [NSDate date];
+    return [self updateAll: objects withPrimaryKey: nil];
+}
+
+- (int)updateAll:(NSArray*)objects withPrimaryKey:(NSString*)key {
+        NSDate * start = [NSDate date];
     [db startTransaction: @"updateAll"];
+    NSString * dbKey = key;
+    if ( key != nil && [key isEqualToString: @"_id"]) {
+        dbKey = @"id";
+    }
     for ( int i=0; i < [objects count]; i++ ) {
         id d = [objects objectAtIndex: i];
         if ( [d isKindOfClass: [NSDictionary class]] ) {
@@ -233,6 +241,13 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
             if ( embedded != nil ) {
                 d = embedded;
             }
+        }
+        // for now when a primary key is passed in delete the record before inserting new one
+        // Note that it is more efficient to just use update with an index and
+        // let the db take care of the update.
+        if ( key != nil ) {
+            
+            [self delete: @"%@=%@", dbKey, [d valueForKey: key]];
         }
         [self updateNoTransaction: d];
     }
