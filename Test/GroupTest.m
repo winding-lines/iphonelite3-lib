@@ -1,6 +1,6 @@
 /*
  Copyright (c) 2009 copyright@de-co-de.com
- 
+
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
  files (the "Software"), to deal in the Software without
@@ -9,10 +9,10 @@
  copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following
  conditions:
- 
+
  The above copyright notice and this permission notice shall be
  included in all copies or substantial portions of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -40,7 +40,7 @@
 
 @end
 
-static const char * ddl = 
+static const char * ddl =
 "create table \"users\" ("
 "\"id\" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
 "\"name\" varchar(255),"
@@ -91,9 +91,9 @@ static const char * ddl =
     db = [[Lite3DB alloc] initWithDbName: @"user_test_020709" andSql:[NSString stringWithCString:ddl]];
     usersTable = [[Lite3Table lite3TableName: @"users" withDb: db forClassName:@"User"] retain];
     groupsTable = [[Lite3Table lite3TableName: @"groups" withDb: db forClassName:@"Group"] retain];
-    // need to traverse all the tables and fix the references 
+    // need to traverse all the tables and fix the references
     [db checkConsistency];
-    
+
 }
 
 - (void) testDDL {
@@ -112,8 +112,8 @@ static const char * ddl =
 
 -(void)testUsersTableSetup {
     STAssertNotNil( usersTable, @"Valid usersTable", nil );
-    STAssertTrue( [usersTable tableExists], @"Table places does not exist", nil );    
-    STAssertTrue( [usersTable isValid], @"Table places is not valid", nil );    
+    STAssertTrue( [usersTable tableExists], @"Table places does not exist", nil );
+    STAssertTrue( [usersTable isValid], @"Table places is not valid", nil );
     STAssertNotNil( usersTable.arguments, @"Bad arguments in usersTable", nil );
 }
 
@@ -129,31 +129,31 @@ static const char * ddl =
     NSArray * users = [self buildImportUsers];
     [usersTable truncate];
     STAssertEquals( 0, [usersTable count], @"Users table not empty after truncate, instead %d", [usersTable count] );
-    
+
     // IMPORT
-    [usersTable updateAll: users]; 
-    
-    STAssertEquals ( (int)[users count], (int)[usersTable count], @"Users table does not have proper count of rows %d", [usersTable count] ); 
-    
+    [usersTable updateAll: users];
+
+    STAssertEquals ( (int)[users count], (int)[usersTable count], @"Users table does not have proper count of rows %d", [usersTable count] );
+
     [usersTable truncate];
     STAssertEquals( 0, [usersTable count], @"Users table not empty after truncate, instead %d", [usersTable count] );
-    
+
 }
 
-- (void) testImportManyToMany {    
+- (void) testImportManyToMany {
     NSArray * groups = [self buildImportGroups];
     Lite3LinkTable * groupsUsers = [groupsTable linkTableFor: @"users"];
-    
+
     [groupsTable truncate];
     STAssertEquals( 0, [groupsTable count], @"Groups table not empty after truncate, instead %d", [groupsTable count] );
     STAssertEquals( (int)[groupsUsers.ownTable count], 0, @"Linked table is not empty %d",  [groupsUsers.ownTable count] );
 
     // IMPORT
     [groupsTable updateAll: groups];
-    
-    // TEST SOME MORE    
+
+    // TEST SOME MORE
     STAssertEquals ( (int)[groups count], (int)[groupsTable count], @"Groups table does not have proper count of rows %d", [groupsTable count] );
-    
+
     int linksCount = [groupsUsers.ownTable count];
     STAssertGreaterThan( linksCount, 0, @"Linked table is empty", nil);
     STAssertEquals( linksCount, 6, @"Bad number of links %d", linksCount );
@@ -165,8 +165,8 @@ static const char * ddl =
     [groupsTable truncate];
     STAssertEquals( 0, [groupsTable count], @"Groups table not empty after truncate, instead %d", [groupsTable count] );
     STAssertEquals( (int)[groupsUsers.ownTable count], 0, @"Linked table is not empty %d",  [groupsUsers.ownTable count] );
-    
-     
+
+
 }
 
 - (void)testAccessSimple {
@@ -185,7 +185,7 @@ static const char * ddl =
     STAssertEquals ( user._id, 2, @"Fetch bad user id with firstOrderBy %d", user._id );
 }
 
-- (void) testAccessManyToMany {    
+- (void) testAccessManyToMany {
     [usersTable truncate];
     [groupsTable truncate];
     [usersTable updateAll: [self buildImportUsers]];
@@ -199,7 +199,7 @@ static const char * ddl =
     group = (Group*)[groupsTable selectFirst: @"id = 1"];
     STAssertNotNil( group, @"Cannot fetch group", nil );
     STAssertEquals( group._id, 1 , @"Fetched wrong group %@", group );
-    
+
     NSArray * usersForGroup = [groupsTable filterArray: users forOwner: group andProperty: @"users"];
     STAssertNotNil( usersForGroup, @"Group has null users", nil );
     STAssertEquals ( (int)[usersForGroup count], 3, @"%d is the wrong number of users", (int)[usersForGroup count] );
@@ -210,12 +210,12 @@ static const char * ddl =
     STAssertNotNil( secondUser, @"Second user is empty", nil );
     STAssertGreaterThan( secondUser._id, 0, @"Second user has no id", nil );
     STAssertFalse( firstUser._id == secondUser._id, @"First and second user id identical %d", firstUser._id );
-    
+
     usersForGroup = [groupsTable loadProperty: @"users" forOwner:group withCache:nil];
     STAssertNotNil( usersForGroup, @"Group (loadProperty) has null users", nil );
     STAssertEquals ( (int)[usersForGroup count], 3, @"%d is the wrong number of users", (int)[usersForGroup count] );
-    
-    
+
+
 }
 
 -(void) testCount {
@@ -235,7 +235,7 @@ static const char * ddl =
     user.updated_at = [NSDate date];
     [usersTable update: user];
     STAssertGreaterThan( user._id, 0, @"Wrong id after creating new user %d", user._id );
-    
+
     //User * user1 = [usersTable selectFirstOrderBy:nil withFormat: @"id=", user._id];
     User * user1 = [usersTable selectFirst: @"id=%d", user._id];
     STAssertNotNil( user1, @"Could not fetch user just saved %d", user._id );
@@ -249,7 +249,7 @@ static const char * ddl =
    NSArray *selected  = [usersTable selectWithPredicate:predicate sortBy:nil withFormat: nil];
    STAssertNotNil(selected, @"Nil return from selectWithPredicate");
    STAssertEquals( (int)[selected count], 0, @"Wrong number of elements in selected array %d", [selected count]);
-   
+
 }
 
 -(void) testPredicateWithData1{
@@ -325,11 +325,42 @@ static const char * ddl =
     STAssertEquals( 3, [usersTable count], @"Count of users changed after update %d", [usersTable count] );
 }
 
+-(void) testUpdateAllNewKey {
+    [usersTable truncate];
+    [usersTable updateAll: [self buildImportUsers]];
+    User * u = [[[User alloc] init] autorelease];
+    u._id = 4;
+    [u setName: @"some other name"];
+    [usersTable updateAll: [NSArray arrayWithObject: u ]];
+    STAssertEquals( 4, [usersTable count], @"Wrong count of users after update %d", [usersTable count] );
+}
+
+-(void) testDeleteOne {
+    [usersTable truncate];
+    [usersTable updateAll: [self buildImportUsers]];
+    [usersTable delete: @"id=%d", 1];
+    STAssertEquals( 2, [usersTable count], @"Wrong count of users after delete %d", [usersTable count] );
+}
+
+-(void) testDeleteByName {
+    [usersTable truncate];
+    [usersTable updateAll: [self buildImportUsers]];
+    [usersTable delete: @"name='%@'", @"user1"];
+    STAssertEquals( 2, [usersTable count], @"Wrong count of users after delete %d", [usersTable count] );
+}
+
+-(void) testDeleteNoMatch {
+    [usersTable truncate];
+    [usersTable updateAll: [self buildImportUsers]];
+    [usersTable delete: @"name='%@'", @"name1"];
+    STAssertEquals( 3, [usersTable count], @"Wrong count of users after delete %d", [usersTable count] );
+}
+
 - (void)tearDown {
     [usersTable release];
     [groupsTable release];
     [db release];
-    
+
 }
 
 @end
