@@ -295,6 +295,36 @@ static const char * ddl =
     STAssertEquals( (int)[selected count], 0, @"Wrong number of elements in selected array %d", [selected count]);
 }
 
+-(void) testUpdateExistingKey {
+    [usersTable truncate];
+    [usersTable updateAll: [self buildImportUsers]];
+    User * u = [[[User alloc] init] autorelease];
+    u._id = 3;
+    [u setName: @"some other name"];
+    [usersTable update: u ];
+    STAssertEquals( 3, [usersTable count], @"Count of users changed after update %d", [usersTable count] );
+}
+
+-(void) testUpdateNewKey {
+    [usersTable truncate];
+    [usersTable updateAll: [self buildImportUsers]];
+    User * u = [[[User alloc] init] autorelease];
+    u._id = 4;
+    [u setName: @"some other name"];
+    [usersTable update: u ];
+    STAssertEquals( 4, [usersTable count], @"Wrong count of users after update %d", [usersTable count] );
+}
+
+-(void) testUpdateAllExistingKey {
+    [usersTable truncate];
+    [usersTable updateAll: [self buildImportUsers]];
+    User * u = [[[User alloc] init] autorelease];
+    u._id = 3;
+    [u setName: @"some other name"];
+    [usersTable updateAll: [NSArray arrayWithObject: u ]];
+    STAssertEquals( 3, [usersTable count], @"Count of users changed after update %d", [usersTable count] );
+}
+
 - (void)tearDown {
     [usersTable release];
     [groupsTable release];
