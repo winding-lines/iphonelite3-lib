@@ -423,9 +423,8 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
 
 - (void)deleteWhereProperty:(NSString*)propertyName hasValue:(id)value {
     NSString * deleteStatement = [[NSString alloc] initWithFormat: @"delete from %@ where %@=?", tableName, propertyName];
-    [self simpleExec: deleteStatement property:(NSString*)propertyName value: value];
+    int deleted = [self simpleExec: deleteStatement property:(NSString*)propertyName value: value];
     [deleteStatement release];    
-    
 }
 
 
