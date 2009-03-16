@@ -45,8 +45,9 @@
 
 -(BOOL) setProperty:(NSString *) name inObject: (id) object toValue: (const char *) value;
 
--(void)simpleExec: (NSString*)stmt;
--(void)simpleExec: (NSString*)stmt property:(NSString*)name value:(id)value;
+-(int)simpleExec: (NSString*)stmt;
+
+-(int)simpleExec: (NSString*)stmt property:(NSString*)name value:(id)value;
 @end
 
 /**
@@ -574,11 +575,11 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
 /**
  * Execute a statement that does not generate any output.
  */
--(void)simpleExec: (NSString*)sql {
+-(int)simpleExec: (NSString*)sql {
     sqlite3_stmt *compiled;
     if ( ![db compileStatement: &compiled sql: sql] ) {
         DLog(@"Compiling statement fails");
-        return;
+        return 0;
     }
     if ( compiled != NULL ) {
         int rc = sqlite3_step(compiled);
@@ -588,13 +589,14 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
         DLog( @"Could not compile statement");
     }
     sqlite3_finalize(compiled);
+    return [db modifiedRowsCount];    
 }
 
--(void)simpleExec: (NSString*)sql property:(NSString*)name value:(id)value {
+-(int)simpleExec: (NSString*)sql property:(NSString*)name value:(id)value {
     sqlite3_stmt *compiled;
     if ( ![db compileStatement: &compiled sql: sql] ) {
         DLog(@"Compiling statement fails");
-        return;
+        return -0;
     }
     if ( compiled != NULL ) {
         Lite3Arg * pa = [Lite3Arg findByName:name inArray:arguments];
@@ -606,6 +608,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
         DLog( @"Could not compile statement");
     }
     sqlite3_finalize(compiled);
+    return [db modifiedRowsCount];
 }
 
 

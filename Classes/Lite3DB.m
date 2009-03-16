@@ -268,6 +268,9 @@ int listTablesCallback(void *helperP, int columnCount, char **values, char **col
     return [self checkError: rc message: @"Compiling arbitrary statement"];
 }
 
+-(int)modifiedRowsCount {
+    return sqlite3_changes(dbHandle);
+}
 
 - (void)dealloc {
     [tableDictionary release];

@@ -77,4 +77,8 @@
 
 -(BOOL)compileCountStatement:(sqlite3_stmt**)stmt_p tableName: (NSString*)tableName;
 
+/**
+ * Return the number of changed rows in the last db operation.
+ */
+-(int)modifiedRowsCount;
 @end
