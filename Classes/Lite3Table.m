@@ -374,7 +374,9 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
                 break;
             }
             if ( rc != SQLITE_ROW ) {
-                DLog( @"Exiting with rc %d", rc );
+                if ( rc != SQLITE_DONE ) {
+                    DLog( @"Exiting with rc %d", rc );
+                }
                 break;
             }
             id object  = class_createInstance(cls, 0 );
