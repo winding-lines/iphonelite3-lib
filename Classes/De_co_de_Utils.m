@@ -77,8 +77,9 @@ int base64_block( unsigned char * in3, int in_len, unsigned char * data_out, int
     }
     data_out[out_len]=0;
     
-    return [NSString stringWithCString: (const char*)data_out length: out_len];
-    
+    return [[[NSString alloc] initWithBytes:
+      (const char*)data_out length: out_len encoding: NSASCIIStringEncoding]
+            autorelease];
 }
 
 +(NSString*) basicAuthorizationUser: (NSString*) username password: (NSString*) password {
