@@ -508,7 +508,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
                     // assume this is a many-to-many relationship and extract the class name
                     const char * comma = strchr( attributes, ',' );
                     comma = comma - 5;
-                    NSString * linkedClassName = [NSString stringWithCString: attributes+4 length:(comma-attributes)];
+                    NSString * linkedClassName = [[[NSString alloc] initWithBytes:(attributes+4) length:(comma-attributes) encoding:NSASCIIStringEncoding] autorelease];
                     Lite3LinkTable * linkTable = [[Lite3LinkTable alloc] initWithDb: db];
                     linkTable.primaryTable = self;
                     linkTable.secondaryClassName = linkedClassName;
@@ -808,7 +808,7 @@ static int multipleRowCallback(void *helperP, int columnCount, char **values, ch
         NSString * nameAsString = [[NSString alloc] initWithCString: name];
         if (helper->cls == nil ) {
             // we don't have an user class backing this table
-            [object setValue: [NSString stringWithCString: value] forKey: nameAsString];
+            [object setValue: [NSString stringWithCString: value encoding: NSUTF8StringEncoding] forKey: nameAsString];
         } else {
             [helper->preparedTable setProperty: nameAsString inObject: object toValue: value ];
         }
