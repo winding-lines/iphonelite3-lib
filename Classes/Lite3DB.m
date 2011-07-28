@@ -133,7 +133,7 @@ int listTablesCallback(void *helperP, int columnCount, char **values, char **col
     if ( helperP == NULL ) {
         return 0;
     }
-    [((NSMutableArray*)helperP) addObject: [[NSString alloc] initWithCString: values[0]]];
+    [((NSMutableArray*)helperP) addObject: [[[NSString alloc] initWithCString: values[0]] autorelease]];
     return 0;
     
 }

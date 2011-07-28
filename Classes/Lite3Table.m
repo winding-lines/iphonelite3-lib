@@ -253,8 +253,10 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
         [self updateNoTransaction: d];
     }
     [db endTransaction];
+#if defined(DEBUG
     NSTimeInterval elapsed = [start timeIntervalSinceNow];
     DLog(@"updateAll %@ duration %f", tableName, -elapsed);
+#endif
     return [objects count];
 }
 
@@ -472,7 +474,7 @@ typedef struct _SqlOuputHelper SqlOutputHelper;
 
 #pragma mark "-- private implementation --"
 - (BOOL)mapToClass: (NSString*)clsName {
-    NSMutableArray * _arguments = [[NSMutableArray alloc] init];
+    NSMutableArray * _arguments = [[[NSMutableArray alloc] init] autorelease];
     const char * _c = [clsName cStringUsingEncoding: NSASCIIStringEncoding];
     Class cls = objc_getClass(_c);
     if ( cls == nil ) {
@@ -795,7 +797,7 @@ static int multipleRowCallback(void *helperP, int columnCount, char **values, ch
     if ( helper->cls != nil ) {
         object = class_createInstance(helper->cls, 0 );
     } else {
-        object = [[NSMutableDictionary alloc] init];
+        object = [[NSMutableDictionary alloc] init] ;
     }
     int i;
     for(i=0; i<columnCount; i++) {
@@ -815,6 +817,7 @@ static int multipleRowCallback(void *helperP, int columnCount, char **values, ch
         [nameAsString release];
     }
     [helper->output addObject: object];
+    [object release];
     return 0;
 }
 

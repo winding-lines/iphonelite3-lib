@@ -34,7 +34,7 @@
 @synthesize link;
 
 + (Lite3Arg*)lite3ArgWithName: (NSString*) _name class: cls andType:(int) _preparedType {
-    Lite3Arg * pa = [[Lite3Arg alloc] init];
+    Lite3Arg * pa = [[[Lite3Arg alloc] init] autorelease];
     pa.name = _name;
     pa.preparedType = _preparedType;
     return pa;
